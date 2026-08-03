@@ -1,4 +1,4 @@
-//! `~/.config/herdr-board/config.toml` loader (override via `HERDR_BOARD_CONFIG`).
+//! Platform config-directory loader (override via `HERDR_BOARD_CONFIG`).
 //! A missing file yields defaults.
 
 use std::collections::HashMap;
@@ -13,6 +13,9 @@ fn default_max_concurrent() -> usize {
 }
 fn default_idle_grace_seconds() -> u64 {
     90
+}
+fn default_template() -> String {
+    crate::template::PIPELINE_TEMPLATE.to_string()
 }
 fn default_timeout_unit_secs() -> u64 {
     60
@@ -72,6 +75,9 @@ pub struct Config {
     /// Seconds an agent may sit idle (no `board done`) before it is parked awaiting review.
     #[serde(default = "default_idle_grace_seconds")]
     pub idle_grace_seconds: u64,
+    /// Built-in template resolved when callers apply the `default` alias.
+    #[serde(default = "default_template")]
+    pub default_template: String,
     /// Config-defined harnesses keyed by name (`[harness.NAME]`).
     #[serde(default)]
     pub harness: HashMap<String, HarnessDef>,
@@ -119,6 +125,7 @@ impl Default for Config {
         Config {
             max_concurrent: default_max_concurrent(),
             idle_grace_seconds: default_idle_grace_seconds(),
+            default_template: default_template(),
             harness: HashMap::new(),
             pi_agent_dir: None,
         }

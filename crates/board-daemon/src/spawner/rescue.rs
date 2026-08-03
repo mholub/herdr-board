@@ -346,7 +346,9 @@ fn launch_rescue(
     };
 
     match req.agent_kind.as_deref() {
-        Some(kind) => launch_managed(client, &req, kind, pane_id, DEFAULT_AGENT_START_DELAY),
+        Some(kind) => {
+            launch_managed(client, &req, kind, pane_id, DEFAULT_AGENT_START_DELAY).map(|_| ())
+        }
         None => {
             let runner = HerdrCliPaneRunner;
             launch_configured(

@@ -343,12 +343,13 @@ pub(crate) fn register_spawned_run(
         })?;
         let is_local = spawned.pid.is_some();
         let pane_id = spawned.pane_id.clone();
-        db.promote_run_with_anchor_uow(
+        db.promote_run_with_anchor_and_session_uow(
             run_id,
             spawned.workspace_id.as_deref(),
             spawned.pane_id.as_deref(),
             spawned.anchor_pane_id.as_deref(),
             timeout_deadline_at_ms,
+            spawned.harness_session_id.as_deref(),
         )?;
         let registered_handle = handle.take().ok_or_else(|| {
             Error::InvalidState(format!(

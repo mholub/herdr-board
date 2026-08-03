@@ -214,6 +214,34 @@ fn claude_req() -> HerdrLaunchPlan {
     }
 }
 
+fn codex_req() -> HerdrLaunchPlan {
+    HerdrLaunchPlan {
+        name: "card-42-execute".into(),
+        name_fallback: Some("card-42-execute-r7".into()),
+        agent_kind: Some("codex".into()),
+        initial_prompt: Some("implement the card".into()),
+        system_prompt: Some("codex system instructions".into()),
+        tab_label: Some("kanban".into()),
+        owned_tab_id: None,
+        durable_pane_ids: Vec::new(),
+        reclaimable_pane_ids: Vec::new(),
+        durable_anchor_pane_ids: Vec::new(),
+        cwd: Some(PathBuf::from("/tmp/card cwd")),
+        workspace_ref: Some("w1".into()),
+        herdr_socket: None,
+        env: vec![("BOARD_CARD_ID".into(), "42".into())],
+        argv: vec![
+            "codex".into(),
+            "--model".into(),
+            "gpt-5.4".into(),
+            "--config".into(),
+            "model_reasoning_effort=\"high\"".into(),
+            "--sandbox".into(),
+            "workspace-write".into(),
+        ],
+    }
+}
+
 fn assert_startup_prompt_file(
     req: &Value,
     expected_base_args: &[&str],

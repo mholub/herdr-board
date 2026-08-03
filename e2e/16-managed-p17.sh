@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 16-managed-p17.sh — protocol-17 managed Pi/Claude launch contract.
+# 16-managed-p17.sh — protocol-17 managed Pi/Claude/Codex launch contract.
 #
 # The provider-free terminal fixtures validate the authoritative 0600 system
 # file, report session identity then idle lifecycle against HERDR_PANE_ID, emit
@@ -15,8 +15,10 @@ trap e2e_cleanup EXIT
 e2e_enable_fake_pi
 [ "$(type -P pi)" = "$E2E_FAKE_PI_BIN_DIR/pi" ] || fail "fake Pi shadowing failed"
 [ "$(type -P claude)" = "$E2E_FAKE_PI_BIN_DIR/claude" ] || fail "fake Claude shadowing failed"
+[ "$(type -P codex)" = "$E2E_FAKE_PI_BIN_DIR/codex" ] || fail "fake Codex shadowing failed"
 [ "$(type -t pi)" = function ] || fail "fake Pi exec function was not exported"
 [ "$(type -t claude)" = function ] || fail "fake Claude exec function was not exported"
+[ "$(type -t codex)" = function ] || fail "fake Codex exec function was not exported"
 e2e_boot   # e2e_init + e2e_build + e2e_isolate + e2e_daemon_start (in that order)
 
 managed_failure_diag() {
@@ -167,29 +169,71 @@ assert not any("claude description" in arg or "herdr-board protocol" in arg for 
 print("  Claude: 0600 system file exact; readiness reported; exact agent.prompt captured on tty")
 PY
 
+step "Dispatch fake Codex and persist its integration-reported conversation id"
+codex_json="$("$BOARD_BIN" card new --title 'P17 Codex' --description $'codex description with spaces\nand a newline' \
+  --harness codex --model p17/codex-model --effort high --permission read-only \
+  --space-kind workspace --space-ref "$WS_ID" --json)"
+CODEX_ID="$(printf '%s' "$codex_json" | jget id)"
+mut "board move $CODEX_ID 'P17 Execute' -> managed agent.start kind=codex"
+e2e_board_herdr_mutate -- move "$CODEX_ID" "P17 Execute" --json >/dev/null
+codex_outcome="$(wait_ok "$CODEX_ID" 100)" || {
+  managed_failure_diag codex "$CODEX_ID"
+  fail "managed Codex outcome '$codex_outcome' (session detection/agent.prompt did not complete)"
+}
+[ "$codex_outcome" = ok ] || fail "managed Codex did not complete ok (got '$codex_outcome')"
+CODEX_RUN_ID="$(card_field "$CODEX_ID" runs[-1].id)"
+CODEX_PANE_ID="$(card_field "$CODEX_ID" runs[-1].herdr_pane_id)"
+CODEX_RECORD="$E2E_TMP/fake-codex-run-$CODEX_RUN_ID.json"
+CODEX_SHOW="$E2E_TMP/codex-show.json"
+"$BOARD_BIN" card show "$CODEX_ID" --json >"$CODEX_SHOW"
+[ -f "$CODEX_RECORD" ] || fail "fake Codex did not record run $CODEX_RUN_ID"
+python3 - "$CODEX_RECORD" "$CODEX_SHOW" "$CODEX_ID" "$CODEX_RUN_ID" "$MANAGED_PANE_CWD" <<'PY'
+import json,os,sys
+record, show_path, card, run, cwd = sys.argv[1:]
+x=json.load(open(record,encoding="utf-8")); show=json.load(open(show_path,encoding="utf-8"))
+latest=show["runs"][-1]
+assert str(x["card_id"]) == card and str(x["run_id"]) == run
+assert os.path.realpath(x["cwd"]) == os.path.realpath(cwd)
+assert x["model"] == "p17/codex-model" and x["effort"] == "high"
+assert x["sandbox"] == "read-only"
+assert x["system_prompt"].startswith("## herdr-board protocol")
+assert latest["session_id"] == x["agent_session_id"]
+assert show["card"]["session_id"] == x["agent_session_id"]
+assert x["readiness_report"] == "ok" and x["herdr_pane_id"]
+assert [r["phase"] for r in x["reports"]] == ["session_identity", "idle_lifecycle"]
+assert x["stdin_isatty"] is True and x["prompt_received_via_stdin"] is True
+assert x["prompt_matches_run_snapshot"] is True
+assert x["prompt"] == latest["prompt_snapshot"]
+assert not any("codex description" in arg for arg in x["argv"])
+print("  Codex: developer instructions exact; detected conversation id persisted; exact agent.prompt captured")
+PY
+
 step "Assert held managed panes have the expected tab/pane/layout structure"
 tabs_json="$(hrpc tab.list "{\"workspace_id\":\"$WS_ID\"}")"
 panes_json="$(hrpc pane.list "{\"workspace_id\":\"$WS_ID\"}")"
-python3 - "$tabs_json" "$panes_json" "$PI_PANE_ID" "$CLAUDE_PANE_ID" "$PI_ID" "$CLAUDE_ID" <<'PY'
+python3 - "$tabs_json" "$panes_json" "$PI_PANE_ID" "$CLAUDE_PANE_ID" "$CODEX_PANE_ID" "$PI_ID" "$CLAUDE_ID" "$CODEX_ID" <<'PY'
 import json, sys
 tabs=json.loads(sys.argv[1]).get("tabs",[]); panes=json.loads(sys.argv[2]).get("panes",[])
-pi_id, claude_id, pi_card, claude_card = sys.argv[3:]
+pi_id, claude_id, codex_id, pi_card, claude_card, codex_card = sys.argv[3:]
 pi_tab=[t for t in tabs if t.get("label")==f"card-{pi_card}"]
 claude_tab=[t for t in tabs if t.get("label")==f"card-{claude_card}"]
-assert len(pi_tab)==len(claude_tab)==1
-assert pi_tab[0]["tab_id"] != claude_tab[0]["tab_id"]
+codex_tab=[t for t in tabs if t.get("label")==f"card-{codex_card}"]
+assert len(pi_tab)==len(claude_tab)==len(codex_tab)==1
+assert len({pi_tab[0]["tab_id"],claude_tab[0]["tab_id"],codex_tab[0]["tab_id"]}) == 3
 by_id={p["pane_id"]: p for p in panes}
 assert by_id[pi_id].get("tab_id") == pi_tab[0]["tab_id"]
 assert by_id[claude_id].get("tab_id") == claude_tab[0]["tab_id"]
+assert by_id[codex_id].get("tab_id") == codex_tab[0]["tab_id"]
 assert by_id[pi_id].get("agent") == "pi"
 assert by_id[claude_id].get("agent") == "claude"
-for card, tab in ((pi_card, pi_tab[0]), (claude_card, claude_tab[0])):
+assert by_id[codex_id].get("agent") == "codex"
+for card, tab in ((pi_card, pi_tab[0]), (claude_card, claude_tab[0]), (codex_card, codex_tab[0])):
     owned=[p for p in panes if p.get("tab_id") == tab["tab_id"]]
     anchors=[p for p in owned if p.get("label") == f"card-{card}-anchor" and not p.get("agent")]
     assert len(anchors) == 1
-    assert anchors[0]["pane_id"] not in {pi_id, claude_id}
+    assert anchors[0]["pane_id"] not in {pi_id, claude_id, codex_id}
 PY
-for managed_pane in "$PI_PANE_ID" "$CLAUDE_PANE_ID"; do
+for managed_pane in "$PI_PANE_ID" "$CLAUDE_PANE_ID" "$CODEX_PANE_ID"; do
   layout_json="$(hrpc pane.layout "{\"pane_id\":\"$managed_pane\"}")"
   python3 - "$layout_json" "$managed_pane" <<'PY'
 import json, sys
@@ -199,5 +243,5 @@ PY
 done
 printf '  pane.layout contains both exact bounded-held managed card panes\n'
 
-ok "fixture boundary: no provider was called; passing required live Herdr readiness, ordered identity/idle reports, and exact stdin delivery"
+ok "fixture boundary: no provider was called; Pi, Claude, and Codex passed live Herdr readiness, session reporting, and exact stdin delivery"
 step "16-managed-p17: SYSTEM FILE + AGENT.PROMPT + HELD LAYOUT CONTRACTS PASSED"

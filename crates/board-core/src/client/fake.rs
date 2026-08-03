@@ -1,6 +1,6 @@
 use serde_json::Value;
 
-use crate::db::{ColumnTarget, ColumnWiring, Db, FinalizeEffects, FinalizeRun, BOARD_ID};
+use crate::db::{Db, FinalizeEffects, FinalizeRun, BOARD_ID};
 
 use crate::engine;
 
@@ -11,35 +11,11 @@ use crate::protocol::{
     ColumnUpdateParams, CommentAddParams, CommentDeleteParams, CommentGetParams,
     CommentHistoryParams, CommentUpdateParams, DeletedResult, Event, PaneSetTitleParams,
     PaneSetTitleResult, RunActionResult, RunDoneParams, RunFocusParams, RunFocusResult,
-    TemplateApplyParams, Trigger,
+    TemplateApplyParams,
 };
+use crate::template::{definition, DEFAULT_TEMPLATE_ALIAS, PIPELINE_TEMPLATE};
 
 use super::BoardClient;
-
-// Mirrors `crates/board-daemon/src/ops/boards.rs` (`template_apply`) and
-// `crates/board-daemon/src/template.rs`: same prompts, same five columns, same
-// transitions. Duplicated here (rather than shared) because the daemon logic
-// lives in board-daemon, which board-core cannot depend on; the column
-// creation/wiring itself is shared via `Db::apply_template_columns_uow` so
-// that part cannot drift.
-const PLAN_PROMPT: &str =
-    "You are in the PLAN stage. Use /quick-planner style planning: produce a written
-implementation plan and save it under docs/plans/ (or .plans/). Do not write code.
-When finished you MUST run:
-  board comment $BOARD_CARD_ID \"Plan ready at <filepath>. <3-line summary>\"
-  board done $BOARD_CARD_ID --outcome ok";
-
-const EXECUTE_PROMPT: &str =
-    "You are in the EXECUTE stage. Implement the plan referenced in the card comments.
-Run tests. When finished:
-  board comment $BOARD_CARD_ID \"<what changed, files touched, test results>\"
-  board done $BOARD_CARD_ID --outcome ok    # or --outcome fail with reasons";
-
-const REVIEW_PROMPT: &str =
-    "You are in the REVIEW stage. Review the diff against the card description and the
-plan/execution comments. Be adversarial. Then:
-  board comment $BOARD_CARD_ID \"<verdict + findings>\"
-  board done $BOARD_CARD_ID --outcome ok    # ok = ship to human; fail = back to Execute";
 
 /// In-memory board state machine for TUI tests. Backed by an in-memory
 /// SQLite db, so CRUD/move/positions/comments behave exactly like the real
@@ -432,11 +408,11 @@ fake_methods!(db, config, params, {
     },
     "template.apply" => {
         let p: TemplateApplyParams = serde_json::from_value(params)?;
-        if p.name != "pipeline" {
-            return Err(
-                crate::Error::BadRequest(format!("unknown template: {}", p.name)).into(),
-            );
-        }
+        let name = if p.name == DEFAULT_TEMPLATE_ALIAS {
+            PIPELINE_TEMPLATE
+        } else {
+            p.name.as_str()
+        };
         let board_id = p.board_id.unwrap_or(BOARD_ID);
         db.get_board(board_id)?;
         let existing = db.list_columns(board_id)?;
@@ -449,60 +425,14 @@ fake_methods!(db, config, params, {
             .into());
         }
         let todo = existing[0].id;
-        let specs = vec![
-            ColumnCreateParams {
-                name: "Plan".into(),
-                board_id: Some(board_id),
-                trigger: Some(Trigger::Auto),
-                system_prompt: Some(PLAN_PROMPT.into()),
-                ..Default::default()
-            },
-            ColumnCreateParams {
-                name: "Execute".into(),
-                board_id: Some(board_id),
-                trigger: Some(Trigger::Auto),
-                system_prompt: Some(EXECUTE_PROMPT.into()),
-                ..Default::default()
-            },
-            ColumnCreateParams {
-                name: "Review".into(),
-                board_id: Some(board_id),
-                trigger: Some(Trigger::Auto),
-                system_prompt: Some(REVIEW_PROMPT.into()),
-                model_override: Some("opus".into()),
-                ..Default::default()
-            },
-            ColumnCreateParams {
-                name: "Human Review".into(),
-                board_id: Some(board_id),
-                trigger: Some(Trigger::Manual),
-                ..Default::default()
-            },
-            ColumnCreateParams {
-                name: "Done".into(),
-                board_id: Some(board_id),
-                trigger: Some(Trigger::Manual),
-                ..Default::default()
-            },
-        ];
-        let wiring = [
-            ColumnWiring {
-                column_index: 0,
-                on_success: Some(ColumnTarget::Created(1)),
-                on_fail: Some(ColumnTarget::Existing(todo)),
-            },
-            ColumnWiring {
-                column_index: 1,
-                on_success: Some(ColumnTarget::Created(2)),
-                on_fail: None,
-            },
-            ColumnWiring {
-                column_index: 2,
-                on_success: Some(ColumnTarget::Created(3)),
-                on_fail: Some(ColumnTarget::Created(1)),
-            },
-        ];
-        serde_json::to_value(db.apply_template_columns_uow(board_id, &specs, &wiring)?)?
+        let template = definition(name, board_id, todo)
+            .ok_or_else(|| crate::Error::BadRequest(format!("unknown template: {name}")))?;
+        serde_json::to_value(db.apply_template_columns_uow(
+            board_id,
+            &template.columns,
+            &template.wiring,
+            template.seed_name,
+        )?)?
     },
     "pane.set_title" => {
         // This fake has no Herdr, so it renames nothing and answers with the
@@ -517,6 +447,7 @@ fake_methods!(db, config, params, {
 mod tests {
     use super::*;
     use crate::model::Column;
+    use crate::protocol::Trigger;
     use serde_json::json;
 
     fn columns(client: &mut FakeBoardClient) -> Vec<Column> {

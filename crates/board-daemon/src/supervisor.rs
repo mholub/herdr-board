@@ -286,6 +286,7 @@ fn adopt_alive(
         anchor_pane_id: current_run.herdr_anchor_pane_id.clone(),
         pid: None,
         herdr_socket: socket,
+        harness_session_id: None,
     };
     {
         let mut sched = d.sched.lock().unwrap();

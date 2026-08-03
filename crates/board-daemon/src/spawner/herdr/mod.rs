@@ -182,17 +182,19 @@ impl HerdrSpawner {
                     &selected_socket,
                     req,
                     &owned.pane_id,
-                ),
+                )
+                .map(|()| None),
             };
 
             match launch_result {
-                Ok(()) => {
+                Ok(harness_session_id) => {
                     return Ok(RuntimeHandle {
                         pane_id: Some(owned.pane_id),
                         workspace_id: Some(owned.workspace_id),
                         anchor_pane_id: owned.anchor_pane_id,
                         pid: None,
                         herdr_socket: req.herdr_socket.clone(),
+                        harness_session_id,
                     });
                 }
                 Err(error) if attempt == 0 && is_retryable_placement_race(&error) => {

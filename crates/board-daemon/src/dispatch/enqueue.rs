@@ -85,13 +85,17 @@ pub(crate) fn prepare_enqueue_values(
         &prompt,
     )
     .map_err(map_harness_err)?;
-    let session_id = invocation
-        .resulting_session_id
-        .clone()
-        .or_else(|| match &plan {
-            SessionPlan::Mint => target_session.clone(),
-            SessionPlan::Resume(id) | SessionPlan::Fork(id) => Some(id.clone()),
-        });
+    let session_id = if invocation.discover_session_id {
+        None
+    } else {
+        invocation
+            .resulting_session_id
+            .clone()
+            .or_else(|| match &plan {
+                SessionPlan::Mint => target_session.clone(),
+                SessionPlan::Resume(id) | SessionPlan::Fork(id) => Some(id.clone()),
+            })
+    };
     Ok(PreparedEnqueue {
         card_id: card.id,
         column_id,

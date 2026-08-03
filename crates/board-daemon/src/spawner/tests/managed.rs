@@ -186,6 +186,69 @@ fn managed_claude_uses_file_specific_flag_after_unchanged_startup_tail() {
 }
 
 #[test]
+fn managed_codex_uses_developer_instructions_and_persists_detected_session() {
+    let fake = serve_recording_herdr(|req, _| match req["method"].as_str().unwrap() {
+        "tab.list" => empty_tab_list(req),
+        "tab.create" => tab_created(req, "w1:p9"),
+        "agent.start" => {
+            assert_eq!(req["params"]["kind"], "codex");
+            assert_eq!(
+                req["params"]["args"],
+                serde_json::json!([
+                    "--model",
+                    "gpt-5.4",
+                    "--config",
+                    "model_reasoning_effort=\"high\"",
+                    "--sandbox",
+                    "workspace-write",
+                    "--config",
+                    "developer_instructions=\"codex system instructions\""
+                ])
+            );
+            agent_started(req, "w1:p9", false, true)
+        }
+        "agent.prompt" => {
+            assert_eq!(
+                req["params"],
+                serde_json::json!({"target":"w1:p9","text":"implement the card"})
+            );
+            agent_prompted(req, "w1:p9", "card-42-execute")
+        }
+        "agent.get" => {
+            let mut response = agent_get_result(req, "w1:p9", "card-42-execute", false, true);
+            response["result"]["agent"]["agent_session"] = serde_json::json!({
+                "source":"integration", "agent":"codex", "kind":"id", "value":"thread-42"
+            });
+            response
+        }
+        method => panic!("unexpected protocol-17 method {method}"),
+    });
+    let spawner = HerdrSpawner::new(fake.socket.clone());
+
+    let handle = spawner.spawn(&codex_req()).unwrap();
+    assert_eq!(handle.pane_id.as_deref(), Some("w1:p9"));
+    assert_eq!(handle.harness_session_id.as_deref(), Some("thread-42"));
+    let methods = fake
+        .requests
+        .lock()
+        .unwrap()
+        .iter()
+        .map(|request| request["method"].as_str().unwrap().to_string())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        methods,
+        [
+            "ping",
+            "tab.list",
+            "tab.create",
+            "agent.start",
+            "agent.prompt",
+            "agent.get"
+        ]
+    );
+}
+
+#[test]
 fn managed_existing_tab_splits_selected_pane_before_exact_agent_start() {
     let fake = serve_recording_herdr(|req, _| match req["method"].as_str().unwrap() {
         "tab.list" => existing_tab_list(req),

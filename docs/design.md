@@ -396,7 +396,7 @@ execution, not to resurrect it as a run. Two consequences follow and are not wor
 - for a **configured** (unmanaged) harness, a rescued pane that outlived its harness cannot be
   detected. Herdr tracks no `agent` for unmanaged panes, so the label is the only evidence and a
   leftover shell looks exactly like a live resume; `o` will focus it rather than resuming again.
-  Managed `pi`/`claude` panes do not have this problem — Herdr's agent registration disappears with
+  Managed `pi`/`claude`/`codex` panes do not have this problem — Herdr's agent registration disappears with
   the process (observed live: the pane stays open as a labelled shell with `agent` absent), so the
   daemon re-rescues and reclaims the dead shell. That is a *presence* check: `PaneInfo.agent` is not
   the exclusive name the board picked — the schema carries `agent` and `name` separately — so it is
@@ -501,7 +501,7 @@ Herdr protocol 17 as follows:
 
 ```
 agent.start {
-  name, kind:"pi"|"claude", pane_id,
+  name, kind:"pi"|"claude"|"codex", pane_id,
   args:<startup argv without executable> +
        ["--append-system-prompt", FILE]          # Pi
        ["--append-system-prompt-file", FILE],    # Claude
@@ -550,7 +550,7 @@ opens the script, the residual configured-script orphan is an accepted asynchron
 4. Dispatcher (respecting per-space serial queue + global cap):
    a. Resolve the card's session socket and `ping` it. Anything except exact Herdr 0.7.5/protocol 17 fails before workspace discovery/creation. Then reuse workspace `w4`, or create/reuse the card's labeled `new_workspace`; repository worktree isolation remains an agent prompt responsibility.
    b. Preflight the selected socket again at the spawner boundary. For a new durable run, the card's **`card-<id>` tab** is resolved by exact owned id (reconstructed from the newest matching durable pane in the same session/workspace when boardd restarts), or `tab.create {workspace_id,cwd,env,…}` supplies a new shell anchor. The anchor is labeled `card-<id>-anchor`, its exact id is persisted on the promoted run, and the run child is always created by `pane.split` from that anchor; `agent.start`/`pane run` never target the root. A renamed anchor is still selected only by exact identity; a closed anchor is recreated only from a durable board-run child in the exact proven tab, and missing proof creates a fresh tab without selecting a duplicate-label user tab. Exact ended children may be reclaimed before a later split so the anchor keeps usable geometry. The child receives the run env; the anchor receives only stable card identity. If multiple historical panes are live, newest run id wins; legacy rows retain their old lookup. There is no protocol-16 placement inside `agent.start`.
-   c. For Pi/Claude, write the snapshotted system prompt to a mode-`0600` temporary file; issue `agent.start {name,kind,pane_id,args}` on the split child with prompt-free startup args; a typed `agent_pane_busy` retries the exact request on that same child with bounded 100ms/200ms backoff (never another split); poll `agent.get` for readiness; then send only the task snapshot through `agent.prompt`. Remove the file. Card status → `running`; record the exact child pane/workspace ids. The pane is **visible** — you can watch or type into it anytime.
+   c. For Pi/Claude, write the snapshotted system prompt to a mode-`0600` temporary file; for Codex, encode it as the `developer_instructions` config override. Issue `agent.start {name,kind,pane_id,args}` on the split child with prompt-free startup args; a typed `agent_pane_busy` retries the exact request on that same child with bounded 100ms/200ms backoff (never another split); poll `agent.get` for readiness; then send only the task snapshot through `agent.prompt`. For a new/forked Codex conversation, wait for Herdr's `agent_session` and persist it atomically while promoting the run. Remove any temporary file. Card status → `running`; record the exact child pane/workspace ids. The pane is **visible** — you can watch or type into it anytime.
 
    **Pane naming and ownership**: the managed agent name is `card-<id>-<column-slug>` (e.g. `card-42-plan`, `card-42-execute`). Herdr names are exclusive while a pane is open, so `agent_name_taken` retries once on the same pane with `card-<id>-<column-slug>-r<run>`. A persistent `agent_pane_busy` closes only the board-owned child and leaves the pre-existing anchor. If a placement target disappears, boardd closes only the pane it created (a missing pane is already clean), restarts discovery from `tab.list`, and retries the complete placement once. A terminal launch error also closes only that board-owned pane; pre-existing user panes are never cleanup targets.
 5. Agent plans, writes `docs/plans/meli-retry.md`, then calls `board comment 42 "Plan ready at docs/plans/meli-retry.md …"` and `board done 42 --outcome ok`. From a run, the CLI forwards `BOARD_RUN_ID`; manual/TUI completion omits it and remains compatible.
@@ -702,6 +702,6 @@ herdr panes are fully drivable from the CLI (`pane send-keys` with named keys, `
 | 1. Unit | column engine, prompt assembly, queue, transitions | plain Rust tests, in-memory SQLite; no herdr |
 | 2. TUI snapshot | every view/modal/keybind incl. `?` help | ratatui `TestBackend` + fed `KeyEvent`s + `insta` snapshots; no herdr, no terminal |
 | 3. Daemon integration | dispatch → run → done → auto-move, without tokens | config fake harness plus built-in Pi adapter tests; real boardd paths, no provider call |
-| 4. Full E2E | real Herdr wiring | disposable named session/workspace; the standard suite uses checked-in fake Pi/Claude/configured harnesses and asserts protocol-17 placement/prompt/argv contracts with zero provider cost. A separate opt-in real-Claude Haiku/low smoke is never in `run-all.sh`; its intended contract is one authorized attempt with no retry or fallback. |
+| 4. Full E2E | real Herdr wiring | disposable named session/workspace; the standard suite uses checked-in fake Pi/Claude/Codex/configured harnesses and asserts protocol-17 placement/prompt/argv contracts with zero provider cost. A separate opt-in real-Claude Haiku/low smoke is never in `run-all.sh`; its intended contract is one authorized attempt with no retry or fallback. |
 
 Isolation rules for level 3–4: `BOARD_DB=/tmp/…` + dedicated daemon socket per test run so tests never touch the real board; prefer a separate `herdr --session board-test` (or headless `herdr server`) in CI so the user's session is untouched; inside an interactive dev loop, a throwaway workspace in the live session is fine.

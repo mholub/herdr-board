@@ -211,7 +211,7 @@ fn switcher_apply_template_row_on_empty_board_applies_and_closes_sheet() {
     let effects = update(&mut app, key(KeyCode::Enter));
 
     match effects.as_slice() {
-        [Effect::TemplateApply(name)] => assert_eq!(name, "pipeline"),
+        [Effect::TemplateApply(name)] => assert_eq!(name, "default"),
         other => panic!(
             "expected a single TemplateApply effect, got {} effects",
             other.len()

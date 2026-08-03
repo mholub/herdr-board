@@ -131,6 +131,18 @@ pub struct AgentInfo {
     pub launch_pending: bool,
     #[serde(default)]
     pub interactive_ready: bool,
+    /// Harness conversation reported by protocol 17 integrations. Codex uses
+    /// this daemon-owned result because its CLI creates new ids internally.
+    #[serde(default)]
+    pub agent_session: Option<AgentSessionInfo>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct AgentSessionInfo {
+    pub source: String,
+    pub agent: String,
+    pub kind: String,
+    pub value: String,
 }
 
 /// Live session state (subset the daemon consumes).

@@ -8,6 +8,7 @@ fn defaults_when_empty() {
     let c = Config::default();
     assert_eq!(c.max_concurrent, 3);
     assert_eq!(c.idle_grace_seconds, 90);
+    assert_eq!(c.default_template, "pipeline");
     assert!(c.harness.is_empty());
 }
 
@@ -23,6 +24,7 @@ fn parse_full_config() {
     let toml = r#"
 max_concurrent = 5
 idle_grace_seconds = 120
+default_template = "plan-review"
 
 [harness.fake]
 argv = ["bash", "/path/to/fake-agent.sh"]
@@ -30,6 +32,7 @@ argv = ["bash", "/path/to/fake-agent.sh"]
     let c = Config::from_toml(toml).unwrap();
     assert_eq!(c.max_concurrent, 5);
     assert_eq!(c.idle_grace_seconds, 120);
+    assert_eq!(c.default_template, "plan-review");
     let fake = c.harness.get("fake").unwrap();
     assert_eq!(fake.argv, vec!["bash", "/path/to/fake-agent.sh"]);
     // Capability fields default empty when the pre-existing `argv`-only form is used.

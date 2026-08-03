@@ -25,7 +25,7 @@ pub(crate) use rescue::{rescue_run_pane, RescueOutcome, RescuePlan};
 pub struct HerdrLaunchPlan {
     /// herdr agent/pane label, e.g. `card-42-execute`.
     pub name: String,
-    /// Explicit Herdr managed-agent kind (`pi` or `claude`). `None` means a
+    /// Explicit Herdr managed-agent kind (`pi`, `claude`, or `codex`). `None` means a
     /// configured, unmanaged command; callers must never infer this from argv.
     pub agent_kind: Option<String>,
     /// Card task to submit after a managed agent becomes interactive. `None`
@@ -80,6 +80,9 @@ pub struct RuntimeHandle {
     /// herdr socket this pane lives on (its session), so kill/liveness target
     /// the right session after a daemon restart. `None` = default socket.
     pub herdr_socket: Option<PathBuf>,
+    /// Conversation id detected by Herdr after managed startup, when the
+    /// harness creates it internally (notably Codex mint/fork).
+    pub harness_session_id: Option<String>,
 }
 
 /// Launch, kill, and liveness-check agent processes.

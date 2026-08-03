@@ -48,10 +48,19 @@ exist and a card can only reach `awaiting` (pending review) via the idle grace p
 herdr integration install pi
 ```
 
-Claude users can similarly run `herdr integration install claude`. The repository's optional
+Claude and Codex users can similarly run `herdr integration install claude` or
+`herdr integration install codex`. The repository's optional
 [`skill/SKILL.md`](../skill/SKILL.md) teaches interactive or dispatched agents to comment, call
 `board done`, and queue work. GitHub plugin installation does not copy the skill; the
 local-development installer below can do so.
+
+Install the same skill for both clients when both may operate the board:
+
+```bash
+mkdir -p ~/.codex/skills/herdr-board ~/.claude/skills/herdr-board
+board skill > ~/.codex/skills/herdr-board/SKILL.md
+board skill > ~/.claude/skills/herdr-board/SKILL.md
+```
 
 ## Use named Herdr sessions
 

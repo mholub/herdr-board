@@ -582,7 +582,10 @@ fn harness_list_builtin_only() {
     let d = test_daemon(Config::default());
     let v = handle_request(&d, "harness.list", json!({})).unwrap();
     let names: Vec<String> = serde_json::from_value(v["harnesses"].clone()).unwrap();
-    assert_eq!(names, vec!["pi".to_string(), "claude".to_string()]);
+    assert_eq!(
+        names,
+        vec!["pi".to_string(), "claude".to_string(), "codex".to_string()]
+    );
 }
 
 #[test]
@@ -598,7 +601,7 @@ fn harness_list_includes_config_defined() {
     let d = test_daemon(config);
     let v = handle_request(&d, "harness.list", json!({})).unwrap();
     let names: Vec<String> = serde_json::from_value(v["harnesses"].clone()).unwrap();
-    assert_eq!(names, vec!["pi", "claude", "fake"]);
+    assert_eq!(names, vec!["pi", "claude", "codex", "fake"]);
 }
 
 #[test]

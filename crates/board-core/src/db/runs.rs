@@ -80,6 +80,28 @@ impl Db {
         anchor_pane_id: Option<&str>,
         timeout_deadline_at_ms: Option<i64>,
     ) -> Result<Run> {
+        self.promote_run_with_anchor_and_session_uow(
+            run_id,
+            workspace_id,
+            pane_id,
+            anchor_pane_id,
+            timeout_deadline_at_ms,
+            None,
+        )
+    }
+
+    /// Promote a queued run and atomically persist a conversation id learned
+    /// during startup. Most harnesses know the id at enqueue time; Codex mint
+    /// and fork discover it from Herdr only after the process is interactive.
+    pub fn promote_run_with_anchor_and_session_uow(
+        &self,
+        run_id: i64,
+        workspace_id: Option<&str>,
+        pane_id: Option<&str>,
+        anchor_pane_id: Option<&str>,
+        timeout_deadline_at_ms: Option<i64>,
+        harness_session_id: Option<&str>,
+    ) -> Result<Run> {
         let tx = self.conn.unchecked_transaction()?;
         let card_id: i64 = tx
             .query_row(
@@ -94,13 +116,13 @@ impl Db {
                 other => Error::Sqlite(other),
             })?;
         tx.execute(
-            "UPDATE runs SET started_at=datetime('now'),herdr_workspace_id=?1,herdr_pane_id=?2,herdr_anchor_pane_id=?3,timeout_deadline_at_ms=?5,timeout_paused_at_ms=NULL WHERE id=?4",
-            params![workspace_id,pane_id,anchor_pane_id,run_id,timeout_deadline_at_ms],
+            "UPDATE runs SET started_at=datetime('now'),herdr_workspace_id=?1,herdr_pane_id=?2,herdr_anchor_pane_id=?3,timeout_deadline_at_ms=?5,timeout_paused_at_ms=NULL,session_id=COALESCE(?6,session_id) WHERE id=?4",
+            params![workspace_id,pane_id,anchor_pane_id,run_id,timeout_deadline_at_ms,harness_session_id],
         )?;
         self.lifecycle_fault(LifecycleFaultPoint::PromoteAfterRunUpdate)?;
         tx.execute(
-            "UPDATE cards SET status='running',awaiting_reason=NULL,updated_at=datetime('now') WHERE id=?1",
-            params![card_id],
+            "UPDATE cards SET status='running',awaiting_reason=NULL,session_id=COALESCE(?2,session_id),updated_at=datetime('now') WHERE id=?1",
+            params![card_id,harness_session_id],
         )?;
         tx.commit()?;
         self.get_run(run_id)

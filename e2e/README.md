@@ -11,7 +11,7 @@ isolation/safety design, and the **how-to-write-a-scenario** guide, see
 [`../docs/testing.md`](../docs/testing.md). This file is the authoritative use-case catalog for board protocol v1 / SQLite schema v13:
 every numbered scenario from **01 through 29** must appear here and in `run-all.sh`. The provider-free
 safe boundary is `fake-agent.sh`,
-`fake-bin/{pi,claude}`, and `test-harness.sh`; prompt/system-prompt contents are never logged.
+`fake-bin/{pi,claude,codex}`, and `test-harness.sh`; prompt/system-prompt contents are never logged.
 Scenario 21 is the active-run timer/event-refresh characterization. The complete catalog is run by
 the CI live gate after the cheaper static checks succeed.
 
@@ -34,7 +34,7 @@ the CI live gate after the cheaper static checks succeed.
 | Canonical CLI `card run focus` and card-detail `o` focus one **selected** run of a two-run card: `o` on the older run (whose pane was reclaimed) is refused without closing the overlay, `o` on the newest one focuses its held pane and closes the real plugin overlay | `13-jump-to-pane.sh` | live |
 | A column `harness_override` (TUI select) drives a run via a config-defined harness; `harness.list` advertises config harnesses; effort/permission overrides flow into the run argv | `14-column-config.sh` | live |
 | Integration-style status reports on a live managed pane: blocked → working → end-of-turn idle (Herdr derives `done`) → `awaiting` (`agent_done`), timeout paused; `board done ok` → `done` in the same column | `15-awaiting.sh` | live |
-| Managed protocol-17 Pi + Claude: pane-first placement, exact 0600 system file, readiness/session reports, exact `agent.prompt` task delivery, and held layout | `16-managed-p17.sh` | live, checked-in fake `pi` + `claude`, zero provider cost |
+| Managed protocol-17 Pi + Claude + Codex: pane-first placement, exact system instructions, readiness/session reports (including Codex's post-start id persistence), exact `agent.prompt` task delivery, and held layout | `16-managed-p17.sh` | live, checked-in fake `pi` + `claude` + `codex`, zero provider cost |
 | Unmanaged protocol-17 configured harness: exact argv/multiline env/cwd/socket bridge through CLI-only `pane run`, held layout, explicit completion | `17-configured-p17-runner.sh` | live, temporary runner, zero provider cost |
 | Nullable omitted/null/value semantics, merged capability validation, atomic rejection, and provider-free dispatch after clears | `18-nullable-clear.sh` | live, zero provider cost |
 | Daemon starts before Herdr; late supervisor connection observes one exact pane exit | `19-daemon-before-herdr.sh` | live, zero provider cost |
@@ -163,7 +163,7 @@ personal Claude state. Its intended contract is one authorized attempt with no r
 | `test-harness.sh` | Deterministic Linux/macOS shell safety checks for signed ownership tokens, key scrubbing, every exact-resource ledger kind, replacement, malformed record, and standalone parity; starts no Herdr resources. |
 | `process_identity.py` | Standard-library platform backend: Linux `/proc`; Darwin `libproc`/`KERN_PROCARGS2`; exact argv/start/executable capture and HMAC verification. |
 | `fake-agent.sh` | Config-defined fake harness used by scenarios 01–10 and 13–15. |
-| `fake-bin/pi` / `fake-bin/claude` | Executables exposed only inside disposable standard-E2E Herdr servers/workspaces. They emulate interactive readiness/session reports, require the exact `agent.prompt` bytes before completion, record evidence under isolated temp, and never modify installed tools or call a provider. |
+| `fake-bin/pi` / `fake-bin/claude` / `fake-bin/codex` | Executables exposed only inside disposable standard-E2E Herdr servers/workspaces. They emulate interactive readiness/session reports, require the exact `agent.prompt` bytes before completion, record evidence under isolated temp, and never modify installed tools or call a provider. |
 | `16-managed-p17.sh` | Managed pane-first Pi/Claude protocol-17 launch and no-provider boundary. |
 | `17-configured-p17-runner.sh` | Unmanaged configured-command `pane run` bridge and exact argv/env evidence. |
 | `18-nullable-clear.sh` | Nullable clearing, merged validation, atomic rejection, and post-clear configured dispatch; no prompt-body logging. |

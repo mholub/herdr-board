@@ -77,12 +77,14 @@ board board list [--json]
 board board show [ID|PATH] [--json]
 board board open <PATH> [--json]
 board board rename [ID|PATH] <NAME> [--json]
-board template apply pipeline [--json]
+board template apply pipeline|plan-review|default [--json]
 ```
 
 `board show` and `board open` return a snapshot with `board`, `columns`, `cards`, and `active_runs`.
-The `pipeline` template is atomic and only applies to an empty board containing exactly the seed
-`Todo` column; it returns the resulting column array.
+Templates are atomic and only apply to an empty board containing exactly the seed `Todo` column;
+they return the resulting column array. `default` resolves the daemon's `default_template` setting.
+`plan-review` creates manual plan approval, Codex implementation, a fresh two-reviewer AI review
+controlled by a human `Reviewers:` directive, a small-work polish path, human review, and done.
 
 ### Cards
 
@@ -167,8 +169,8 @@ rescue never re-sends the card task and never writes to the database, so the reo
 ephemeral: it has no run row and is not watched or timed out. It gets `BOARD_CARD_ID`/`BOARD_SOCKET`
 but deliberately **no** `BOARD_RUN_ID`, so from inside it `board comment` still records on the card
 (as a human comment) while `board done` does not apply — the run stays closed. Closing the pane is up
-to you. Resuming requires an explicit per-harness capability (`pi` and
-`claude` have it; a `[harness.NAME]` harness needs `resume = true`) and a recorded conversation id;
+to you. Resuming requires an explicit per-harness capability (`pi`, `claude`, and `codex` have it;
+a `[harness.NAME]` harness needs `resume = true`) and a recorded conversation id;
 without either, focus is refused explicitly — use `card run retry` for a new run instead.
 
 Done/cancel/retry return `{run, card}` in JSON. Retry creates a new run while preserving history.

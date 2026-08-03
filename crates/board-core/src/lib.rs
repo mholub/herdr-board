@@ -7,8 +7,8 @@
 //! - [`db`]: rusqlite store, migrations, CRUD, position management, queries.
 //! - [`engine`]: pure column-engine transition/entry/validation decisions.
 //! - [`prompt`]: prompt assembly and effective-settings resolution.
-//! - [`harness`]: argv/env builders for built-in Pi/Claude and config harnesses.
-//! - [`config`]: `~/.config/herdr-board/config.toml` loader.
+//! - [`harness`]: argv/env builders for built-in Pi/Claude/Codex and config harnesses.
+//! - [`config`]: platform config-directory loader.
 //! - [`paths`]: db/socket/log/config path resolution.
 //! - [`client`]: blocking NDJSON `BoardClient` (+ `FakeBoardClient` behind a feature).
 //! - [`launch`]: durable, harness-neutral execution specifications.
@@ -26,6 +26,7 @@ pub mod pi_catalog;
 pub mod prompt;
 pub mod protocol;
 pub mod scope;
+pub mod template;
 
 pub use engine::ValidationError;
 

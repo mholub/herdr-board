@@ -28,7 +28,8 @@ done
 
 herdr_bin="${HERDR_BIN_PATH:-herdr}"
 skill_src="$repo_root/skill"
-skill_dst="$HOME/.claude/skills/herdr-board"
+claude_skill_dst="$HOME/.claude/skills/herdr-board"
+codex_skill_dst="$HOME/.codex/skills/herdr-board"
 herdr_config="$HOME/.config/herdr/config.toml"
 
 echo "==> Building the board binary"
@@ -40,8 +41,10 @@ link_cmd="$herdr_bin plugin link \"$repo_root\""
 echo "    $link_cmd"
 
 echo
-echo "==> Agent skill (copied into your Claude Code skills dir)"
-echo "    mkdir -p \"$skill_dst\" && cp \"$skill_src/SKILL.md\" \"$skill_dst/SKILL.md\""
+echo "==> Agent skill (copied into Claude Code and Codex skill dirs)"
+echo "    mkdir -p \"$claude_skill_dst\" \"$codex_skill_dst\""
+echo "    cp \"$skill_src/SKILL.md\" \"$claude_skill_dst/SKILL.md\""
+echo "    cp \"$skill_src/SKILL.md\" \"$codex_skill_dst/SKILL.md\""
 
 echo
 echo "==> PATH symlink (agents inside runs call \`board comment/done\` by name)"
@@ -65,11 +68,12 @@ if [ "$APPLY" -eq 1 ]; then
   echo
   echo "==> --yes given: applying mutating steps"
   eval "$link_cmd"
-  mkdir -p "$skill_dst"
-  cp "$skill_src/SKILL.md" "$skill_dst/SKILL.md"
+  mkdir -p "$claude_skill_dst" "$codex_skill_dst"
+  cp "$skill_src/SKILL.md" "$claude_skill_dst/SKILL.md"
+  cp "$skill_src/SKILL.md" "$codex_skill_dst/SKILL.md"
   mkdir -p "$HOME/.local/bin"
   ln -sf "$repo_root/target/release/board" "$HOME/.local/bin/board"
-  echo "    linked plugin, copied skill -> $skill_dst/SKILL.md, symlinked ~/.local/bin/board"
+  echo "    linked plugin, copied skill for Claude + Codex, symlinked ~/.local/bin/board"
 
   # Keybinding. Idempotency heuristic: if the config already invokes open-board
   # (any keys context), assume the binding is present and DO NOT touch the file.
@@ -101,10 +105,11 @@ cat <<EOF
     # Alternatively, open directly as an overlay without the launcher's focus/toggle logic:
     # command = "$herdr_bin plugin pane open --plugin herdr-board --entrypoint board --placement overlay --focus"
 
-==> Recommended: install herdr's Claude integration so agent status (idle/working/
-    blocked) and session refs are reported precisely to herdr:
+==> Recommended: install Herdr integrations for every managed harness you use so
+    agent status and session refs are reported precisely:
 
     $herdr_bin integration install claude
+    $herdr_bin integration install codex
 
 Done. Start the board with your keybinding, or: $repo_root/target/release/board tui
 EOF

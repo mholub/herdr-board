@@ -1,9 +1,9 @@
 //! Harness capability catalog + run-pane naming.
 
 use board_core::capability::{
-    available_harnesses, capabilities_for, claude_capabilities, default_capabilities, efforts_for,
-    meta_for, pi_capabilities, resume_support_for, run_pane_name, run_pane_name_unique,
-    HarnessCapabilities, ResumeSupport,
+    available_harnesses, capabilities_for, claude_capabilities, codex_capabilities,
+    default_capabilities, efforts_for, meta_for, pi_capabilities, resume_support_for,
+    run_pane_name, run_pane_name_unique, HarnessCapabilities, ResumeSupport,
 };
 use board_core::config::Config;
 use board_core::protocol::Effort;
@@ -37,6 +37,23 @@ fn efforts_for_uses_model_policy_and_freeform_defaults() {
 
     let pi = pi_capabilities();
     assert!(efforts_for(&pi, None).contains(&Effort::Minimal));
+}
+
+#[test]
+fn codex_catalog_is_freeform_with_native_sandbox_modes() {
+    let caps = codex_capabilities();
+    assert_eq!(caps.harness, "codex");
+    assert!(caps.models.is_empty());
+    assert!(caps.model_freeform);
+    assert_eq!(
+        caps.default_efforts,
+        vec![Effort::Low, Effort::Medium, Effort::High, Effort::Xhigh]
+    );
+    assert_eq!(
+        caps.permission_modes,
+        vec!["read-only", "workspace-write", "danger-full-access"]
+    );
+    assert_eq!(caps.resume, ResumeSupport::ByConversationId);
 }
 
 #[test]
@@ -281,14 +298,14 @@ argv = ["a"]
     // keys sorted and de-duplicated.
     assert_eq!(
         available_harnesses(&cfg),
-        vec!["pi", "claude", "alpha", "zeta"]
+        vec!["pi", "claude", "codex", "alpha", "zeta"]
     );
 }
 
 #[test]
 fn capabilities_match_trait_snapshot() {
     // The wire snapshot and the trait agree for every built-in.
-    for h in ["pi", "claude"] {
+    for h in ["pi", "claude", "codex"] {
         let cfg = Config::default();
         let via_fn = capabilities_for(h, &cfg).unwrap();
         let via_trait = {
@@ -307,7 +324,7 @@ fn capabilities_match_trait_snapshot() {
 #[test]
 fn builtins_declare_resume_by_conversation_id() {
     let cfg = Config::default();
-    for harness in ["pi", "claude"] {
+    for harness in ["pi", "claude", "codex"] {
         let meta = meta_for(harness, &cfg).unwrap();
         assert_eq!(meta.resume(), ResumeSupport::ByConversationId, "{harness}");
         // The trait answer and the wire snapshot never disagree.
@@ -367,6 +384,7 @@ fn unknown_harness_and_legacy_payloads_fail_closed_on_resume() {
 fn default_capabilities_match_builtins_and_fail_closed_for_unknown() {
     assert_eq!(default_capabilities("pi"), pi_capabilities());
     assert_eq!(default_capabilities("claude"), claude_capabilities());
+    assert_eq!(default_capabilities("codex"), codex_capabilities());
 
     // An unknown harness: permissive about models/efforts we cannot validate,
     // silent about permission modes and resuming, which we must not invent.

@@ -6,12 +6,14 @@ environment overrides applied after it is parsed. The [root README](../README.md
 
 ## Configure the daemon and custom harnesses
 
-Configuration lives at `~/.config/herdr-board/config.toml`; override it with
-`HERDR_BOARD_CONFIG`.
+Configuration lives at the platform config path returned by the OS: on Linux this is normally
+`~/.config/herdr-board/config.toml`, while on macOS it is
+`~/Library/Application Support/herdr-board/config.toml`. Override it with `HERDR_BOARD_CONFIG`.
 
 ```toml
 max_concurrent = 3         # global cap on concurrent runs
 idle_grace_seconds = 90    # idle without board done before the card is parked in `awaiting` for review
+default_template = "pipeline" # `T` / `template apply default`; or "plan-review"
 
 [daemon]
 spawner = "herdr"          # herdr = agent panes (default); local = child processes
@@ -32,7 +34,8 @@ and `{permission_mode}` are available in `argv`. Optional keys `models`, `effort
 what lets `board card run focus` **reopen a run whose pane was closed** (see
 [`protocol.md`](protocol.md) → `run.focus`). It **defaults to `false`**: there is no
 universal CLI syntax for resuming, so herdr-board never guesses one — the built-ins `pi`
-(`--session-id <id>`) and `claude` (`--resume <id>`) declare it themselves. Setting `resume = true`
+(`--session-id <id>`), `claude` (`--resume <id>`), and `codex` (`resume <id>`) declare it
+themselves. Setting `resume = true`
 promises that your `argv` re-attaches to the conversation named by `$BOARD_RESUME_SESSION_ID`, which
 the daemon sets on the reopened pane along with `BOARD_RESCUE=1` (the run's argv is persisted fully
 materialized, so there is no placeholder left to substitute). Without it, focusing such a run is

@@ -33,10 +33,11 @@ pub(crate) fn launch_managed(
     kind: &str,
     pane_id: &str,
     delay: &DelayFn,
-) -> anyhow::Result<()> {
-    let flag = match kind {
-        "pi" => "--append-system-prompt",
-        "claude" => "--append-system-prompt-file",
+) -> anyhow::Result<Option<String>> {
+    let prompt_transport = match kind {
+        "pi" => Some("--append-system-prompt"),
+        "claude" => Some("--append-system-prompt-file"),
+        "codex" => None,
         other => bail!("unsupported managed harness kind: {other}"),
     };
     let system_prompt = req
@@ -67,7 +68,25 @@ pub(crate) fn launch_managed(
         .to_string();
 
     let mut args = startup_tail.to_vec();
-    args.extend([flag.to_string(), prompt_path]);
+    if let Some(flag) = prompt_transport {
+        args.extend([flag.to_string(), prompt_path]);
+    } else {
+        let encoded = serde_json::to_string(system_prompt)
+            .context("encoding Codex developer instructions")?;
+        let system_args = [
+            "--config".to_string(),
+            format!("developer_instructions={encoded}"),
+        ];
+        if matches!(args.first().map(String::as_str), Some("resume" | "fork")) {
+            let session_id = args
+                .pop()
+                .ok_or_else(|| anyhow!("managed Codex resume/fork is missing its session id"))?;
+            args.extend(system_args);
+            args.push(session_id);
+        } else {
+            args.extend(system_args);
+        }
+    }
     let params = AgentStartParams {
         name: req.name.clone(),
         kind: kind.to_string(),
@@ -76,7 +95,7 @@ pub(crate) fn launch_managed(
         timeout_ms: Some(AGENT_START_TIMEOUT_MS),
     };
 
-    let operation = (|| -> anyhow::Result<()> {
+    let operation = (|| -> anyhow::Result<Option<String>> {
         let started = agent_start_retry_name(client, &params, req.name_fallback.as_deref(), delay)
             .map_err(|error| {
                 let message = error.to_string();
@@ -90,7 +109,7 @@ pub(crate) fn launch_managed(
                 };
                 typed.context(format!("herdr agent.start for {}: {message}", req.name))
             })?;
-        await_interactive_ready(client, &started)?;
+        let ready = await_interactive_ready(client, &started)?;
         if let Some(text) = &req.initial_prompt {
             client
                 .agent_prompt(&AgentPromptParams {
@@ -100,16 +119,19 @@ pub(crate) fn launch_managed(
                 })
                 .with_context(|| format!("herdr agent.prompt for {}", req.name))?;
         }
-        Ok(())
+        if kind == "codex" {
+            return Ok(Some(await_agent_session_id(client, pane_id, &ready)?));
+        }
+        Ok(ready.agent_session.map(|session| session.value))
     })();
 
     let remove_result = prompt_file
         .close()
         .context("removing managed system-prompt file");
     match (operation, remove_result) {
-        (Ok(()), Ok(())) => Ok(()),
+        (Ok(session_id), Ok(())) => Ok(session_id),
         (Err(error), Ok(())) => Err(error),
-        (Ok(()), Err(remove_error)) => Err(remove_error),
+        (Ok(_), Err(remove_error)) => Err(remove_error),
         (Err(error), Err(remove_error)) => Err(error.context(format!(
             "additionally failed to remove system-prompt file: {remove_error:#}"
         ))),
@@ -195,9 +217,12 @@ fn is_interactive(agent: &AgentInfo) -> bool {
     agent.interactive_ready && !agent.launch_pending
 }
 
-fn await_interactive_ready(client: &mut HerdrClient, started: &AgentStarted) -> anyhow::Result<()> {
+fn await_interactive_ready(
+    client: &mut HerdrClient,
+    started: &AgentStarted,
+) -> anyhow::Result<AgentInfo> {
     if is_interactive(&started.agent) {
-        return Ok(());
+        return Ok(started.agent.clone());
     }
 
     let pane_id = started.pane_id();
@@ -210,10 +235,39 @@ fn await_interactive_ready(client: &mut HerdrClient, started: &AgentStarted) -> 
             .agent_get(pane_id)
             .with_context(|| format!("herdr agent.get while waiting for {pane_id}"))?;
         if is_interactive(&agent) {
-            return Ok(());
+            return Ok(agent);
         }
         if Instant::now() >= deadline {
             bail!("timed out waiting for managed agent in pane {pane_id} to become interactive");
+        }
+        probes += 1;
+        if probes >= IMMEDIATE_READINESS_PROBES {
+            thread::sleep(
+                READINESS_BACKOFF.min(deadline.saturating_duration_since(Instant::now())),
+            );
+        }
+    }
+}
+
+fn await_agent_session_id(
+    client: &mut HerdrClient,
+    pane_id: &str,
+    ready: &AgentInfo,
+) -> anyhow::Result<String> {
+    if let Some(session) = &ready.agent_session {
+        return Ok(session.value.clone());
+    }
+    let deadline = Instant::now() + READINESS_TIMEOUT;
+    let mut probes = 0_usize;
+    loop {
+        let agent = client
+            .agent_get(pane_id)
+            .with_context(|| format!("herdr agent.get while waiting for {pane_id} session id"))?;
+        if let Some(session) = agent.agent_session {
+            return Ok(session.value);
+        }
+        if Instant::now() >= deadline {
+            bail!("timed out waiting for managed Codex in pane {pane_id} to report its session id");
         }
         probes += 1;
         if probes >= IMMEDIATE_READINESS_PROBES {

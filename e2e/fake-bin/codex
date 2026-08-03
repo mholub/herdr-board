@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# Hermetic, no-provider Codex stand-in for protocol-17 managed launches.
+set -euo pipefail
+
+: "${BOARD_CARD_ID:?BOARD_CARD_ID required}"
+: "${BOARD_RUN_ID:?BOARD_RUN_ID required}"
+: "${BOARD_SOCKET:?BOARD_SOCKET required}"
+: "${HERDR_SOCKET_PATH:?HERDR_SOCKET_PATH required}"
+
+argv=("$@")
+model=""; effort=""; sandbox=""; system_prompt=""
+while (($#)); do
+  case "$1" in
+    --model)
+      (($# >= 2)) || { echo 'fake codex: --model missing value' >&2; exit 2; }
+      model="$2"; shift 2 ;;
+    --sandbox)
+      (($# >= 2)) || { echo 'fake codex: --sandbox missing value' >&2; exit 2; }
+      sandbox="$2"; shift 2 ;;
+    --config)
+      (($# >= 2)) || { echo 'fake codex: --config missing value' >&2; exit 2; }
+      case "$2" in
+        model_reasoning_effort=*) effort="${2#model_reasoning_effort=}"; effort="${effort%\"}"; effort="${effort#\"}" ;;
+        developer_instructions=*)
+          system_prompt="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1].split("=",1)[1]), end="")' "$2")" ;;
+        *) echo "fake codex: unexpected config: $2" >&2; exit 2 ;;
+      esac
+      shift 2 ;;
+    resume|fork|--)
+      echo "fake codex: unexpected mint startup token: $1" >&2; exit 2 ;;
+    -*) echo "fake codex: unexpected startup option: $1" >&2; exit 2 ;;
+    *) echo "fake codex: card prompt leaked into startup argv: $1" >&2; exit 2 ;;
+  esac
+done
+[ -n "$system_prompt" ] || { echo 'fake codex: developer_instructions required' >&2; exit 2; }
+
+record="$(dirname "$BOARD_SOCKET")/fake-codex-run-$BOARD_RUN_ID.json"
+session_id="$(python3 - "$BOARD_RUN_ID" <<'PY'
+import sys,uuid
+print(uuid.uuid5(uuid.NAMESPACE_URL, "herdr-board-e2e-codex-" + sys.argv[1]))
+PY
+)"
+session_dir="$(dirname "$BOARD_SOCKET")/fake-codex-sessions"
+mkdir -p "$session_dir"
+session_path="$session_dir/$session_id-$BOARD_RUN_ID.jsonl"
+python3 - "$record" "$session_path" "$session_id" "$model" "$effort" "$sandbox" \
+  "$system_prompt" "$PWD" "$BOARD_CARD_ID" "$BOARD_RUN_ID" "${argv[@]}" <<'PY'
+import json,os,sys
+(record, session_path, session_id, model, effort, sandbox, system_prompt,
+ cwd, card_id, run_id, *argv) = sys.argv[1:]
+assert "## herdr-board protocol" in system_prompt
+with open(session_path, "x", encoding="utf-8") as target:
+    json.dump({"type":"session_meta","payload":{"id":session_id}}, target)
+    target.write("\n")
+os.chmod(session_path, 0o600)
+with open(record, "w", encoding="utf-8") as target:
+    json.dump({"card_id":int(card_id), "run_id":int(run_id), "cwd":cwd,
+               "model":model, "effort":effort, "sandbox":sandbox,
+               "system_prompt":system_prompt, "argv":argv}, target,
+              ensure_ascii=False, indent=2)
+    target.write("\n")
+PY
+
+printf '\033]0;Codex\007\n› \n'
+python3 "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/managed-agent-report.py" \
+  "$record" codex "$session_id" "$session_path" startup
+
+FAKE_MANAGED_KIND=codex \
+  python3 "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/managed-terminal-shim.py" "$record"
+sleep "${FAKE_CODEX_SLEEP:-1.5}"
+"${BOARD_BIN:?BOARD_BIN required}" comment "fake codex: developer instructions, session detection, and agent.prompt validated"
+"$BOARD_BIN" done --outcome ok
+sleep "${FAKE_MANAGED_HOLD:-60}"

@@ -41,17 +41,17 @@ fn harness_models_claude_json_and_human() {
 #[test]
 fn harness_list_builtins_and_config_defined() {
     let td = TestDaemon::start(&[]);
-    // human: one harness per line, built-ins first (pi, claude) then config.
+    // human: one harness per line, built-ins first, then config.
     let out = td.board(&["harness", "list"]);
     assert!(out.status.success(), "harness list should succeed");
     let text = String::from_utf8_lossy(&out.stdout);
     let names: Vec<&str> = text.lines().filter(|l| !l.is_empty()).collect();
-    assert_eq!(names, vec!["pi", "claude", "fake"], "got:\n{text}");
+    assert_eq!(names, vec!["pi", "claude", "codex", "fake"], "got:\n{text}");
 
     // --json: the same names, default-first, as a JSON array.
     let out = td.board(&["harness", "list", "--json"]);
     let names: Vec<String> = serde_json::from_value(json_output(&out)).unwrap();
-    assert_eq!(names, vec!["pi", "claude", "fake"]);
+    assert_eq!(names, vec!["pi", "claude", "codex", "fake"]);
 }
 
 #[test]
@@ -80,7 +80,7 @@ fn harness_models_unknown_harness_errors() {
     let err = String::from_utf8_lossy(&out.stderr);
     assert_eq!(
         err.trim_end(),
-        "board: boardd error 2: not found: unknown harness 'ghost'; known: pi, claude, fake",
+        "board: boardd error 2: not found: unknown harness 'ghost'; known: pi, claude, codex, fake",
         "unknown harness names the harness and the known set"
     );
 
@@ -93,7 +93,7 @@ fn harness_models_unknown_harness_errors() {
     assert_eq!(error["error"]["code"], 2);
     assert_eq!(
         error["error"]["message"],
-        "not found: unknown harness 'ghost'; known: pi, claude, fake"
+        "not found: unknown harness 'ghost'; known: pi, claude, codex, fake"
     );
 }
 
@@ -333,6 +333,33 @@ fn template_apply_on_empty_board() {
     );
     assert_eq!(find("Review").on_fail_column_id, Some(find("Execute").id));
     assert_eq!(find("Review").model_override.as_deref(), Some("opus"));
+}
+
+#[test]
+fn plan_review_template_is_available_through_public_client() {
+    let td = TestDaemon::start(&[]);
+    let cols = td.client().template_apply("plan-review").unwrap();
+    assert_eq!(
+        cols.iter()
+            .map(|column| column.name.as_str())
+            .collect::<Vec<_>>(),
+        [
+            "Backlog",
+            "Research & Plan",
+            "Plan Approval",
+            "Implementation",
+            "AI Review",
+            "Polish",
+            "Human Review",
+            "Done",
+        ]
+    );
+    let review = cols
+        .iter()
+        .find(|column| column.name == "AI Review")
+        .unwrap();
+    assert_eq!(review.harness_override.as_deref(), Some("codex"));
+    assert!(review.fresh_session);
 }
 
 #[test]

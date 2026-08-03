@@ -190,6 +190,50 @@ fn comments_and_runs_roundtrip() {
 }
 
 #[test]
+fn promotion_persists_a_session_id_discovered_during_launch() {
+    let db = mem();
+    let card = db
+        .create_card(&CardCreateParams {
+            title: "Codex".into(),
+            harness: Some("codex".into()),
+            ..Default::default()
+        })
+        .unwrap();
+    let run = db
+        .enqueue_run_uow(&EnqueueRun {
+            card_id: card.id,
+            column_id: card.column_id,
+            harness: "codex",
+            argv_json: r#"["codex"]"#,
+            prompt_snapshot: "task",
+            system_prompt_snapshot: Some("instructions"),
+            launch_spec_json: None,
+            session_id: None,
+            session: None,
+        })
+        .unwrap();
+
+    db.promote_run_with_anchor_and_session_uow(
+        run.id,
+        Some("w1"),
+        Some("p1"),
+        Some("p0"),
+        None,
+        Some("thread-42"),
+    )
+    .unwrap();
+
+    assert_eq!(
+        db.get_run(run.id).unwrap().session_id.as_deref(),
+        Some("thread-42")
+    );
+    assert_eq!(
+        db.require_card(card.id).unwrap().session_id.as_deref(),
+        Some("thread-42")
+    );
+}
+
+#[test]
 fn direct_scheduler_queries_are_global_fifo_and_exclude_started_and_ended_rows() {
     let db = mem();
     let make = |title: &str| {

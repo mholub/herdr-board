@@ -34,12 +34,85 @@ fn pi_settings() -> EffectiveSettings {
     }
 }
 
+fn codex_settings() -> EffectiveSettings {
+    EffectiveSettings {
+        harness: "codex".into(),
+        model: Some("gpt-5.4".into()),
+        effort: Some(Effort::High),
+        permission_mode: Some("workspace-write".into()),
+        system_prompt: Some("IMPLEMENT stage".into()),
+        fresh_session: false,
+        timeout_minutes: None,
+    }
+}
+
 #[test]
 fn builtin_registry_is_pi_first() {
     assert_eq!(DEFAULT_HARNESS, "pi");
     assert!(is_builtin_harness("pi"));
     assert!(is_builtin_harness("claude"));
+    assert!(is_builtin_harness("codex"));
     assert!(!is_builtin_harness("fake"));
+}
+
+#[test]
+fn codex_managed_launch_discovers_new_conversation_ids_after_start() {
+    let inv = build_invocation(
+        "codex",
+        &Config::default(),
+        &codex_settings(),
+        &SessionPlan::Mint,
+        Some("board-generated-id-is-not-a-codex-id"),
+        "task",
+    )
+    .unwrap();
+    assert_eq!(
+        inv.argv,
+        vec![
+            "codex",
+            "--model",
+            "gpt-5.4",
+            "--config",
+            "model_reasoning_effort=\"high\"",
+            "--sandbox",
+            "workspace-write",
+        ]
+    );
+    assert_eq!(inv.agent_kind.as_deref(), Some("codex"));
+    assert_eq!(inv.initial_prompt.as_deref(), Some("task"));
+    assert_eq!(inv.resulting_session_id, None);
+    assert!(inv.discover_session_id);
+}
+
+#[test]
+fn codex_resume_and_retry_use_native_subcommands() {
+    let resumed = build_invocation(
+        "codex",
+        &Config::default(),
+        &codex_settings(),
+        &SessionPlan::Resume("thread-1".into()),
+        None,
+        "continue",
+    )
+    .unwrap();
+    assert_eq!(resumed.argv[0..2], ["codex", "resume"]);
+    assert_eq!(resumed.argv.last().map(String::as_str), Some("thread-1"));
+    assert_eq!(resumed.resulting_session_id.as_deref(), Some("thread-1"));
+    assert!(!resumed.discover_session_id);
+
+    let forked = build_invocation(
+        "codex",
+        &Config::default(),
+        &codex_settings(),
+        &SessionPlan::Fork("thread-1".into()),
+        Some("ignored"),
+        "retry",
+    )
+    .unwrap();
+    assert_eq!(forked.argv[0..2], ["codex", "fork"]);
+    assert_eq!(forked.argv.last().map(String::as_str), Some("thread-1"));
+    assert_eq!(forked.resulting_session_id, None);
+    assert!(forked.discover_session_id);
 }
 
 #[test]
@@ -398,9 +471,42 @@ fn session_argv_owns_each_harness_resume_syntax() {
         )
     );
     assert_eq!(
+        session_argv("codex", &SessionPlan::Resume("c1".into()), None).unwrap(),
+        (
+            vec!["resume".to_string(), "c1".to_string()],
+            Some("c1".to_string())
+        )
+    );
+    assert_eq!(
         session_argv("nope", &SessionPlan::Resume("c1".into()), None).unwrap_err(),
         HarnessError::UnknownHarness("nope".into())
     );
+}
+
+#[test]
+fn resume_invocation_rethreads_codex_without_resending_the_task() {
+    let managed = build_invocation(
+        "codex",
+        &Config::default(),
+        &codex_settings(),
+        &SessionPlan::Fork("old-thread".into()),
+        None,
+        "original task",
+    )
+    .unwrap();
+    let spec = ExecutionSpec {
+        argv: managed.argv,
+        env: managed.env,
+        agent_kind: managed.agent_kind,
+        initial_prompt: managed.initial_prompt,
+        system_prompt: managed.system_prompt,
+    };
+    let resumed =
+        resume_invocation("codex", ResumeSupport::ByConversationId, &spec, "thread-9").unwrap();
+    assert_eq!(resumed.argv[0..2], ["codex", "resume"]);
+    assert_eq!(resumed.argv.last().map(String::as_str), Some("thread-9"));
+    assert_eq!(resumed.initial_prompt, None);
+    assert!(!resumed.argv.iter().any(|arg| arg == "old-thread"));
 }
 
 #[test]

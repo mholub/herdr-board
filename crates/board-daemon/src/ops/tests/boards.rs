@@ -191,6 +191,56 @@ fn template_and_scheduler_operate_on_scoped_board() {
 }
 
 #[test]
+fn configured_default_plan_review_template_has_manual_gate_and_two_reviewer_stage() {
+    let d = test_daemon(Config {
+        default_template: "plan-review".into(),
+        ..Config::default()
+    });
+    let columns = handle_request(
+        &d,
+        "template.apply",
+        json!({"name":"default","board_id":BOARD_ID}),
+    )
+    .unwrap();
+    let columns = columns.as_array().unwrap();
+    let names = columns
+        .iter()
+        .map(|column| column["name"].as_str().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        names,
+        [
+            "Backlog",
+            "Research & Plan",
+            "Plan Approval",
+            "Implementation",
+            "AI Review",
+            "Polish",
+            "Human Review",
+            "Done",
+        ]
+    );
+    let research = &columns[1];
+    let plan_approval = &columns[2];
+    let implementation = &columns[3];
+    let ai_review = &columns[4];
+    let human_review = &columns[6];
+    assert_eq!(research["harness_override"], "codex");
+    assert_eq!(research["on_success_column_id"], plan_approval["id"]);
+    assert_eq!(research["on_fail_column_id"], plan_approval["id"]);
+    assert_eq!(plan_approval["trigger"], "manual");
+    assert_eq!(implementation["on_success_column_id"], ai_review["id"]);
+    assert_eq!(implementation["on_fail_column_id"], human_review["id"]);
+    assert_eq!(ai_review["fresh_session"], true);
+    assert_eq!(ai_review["on_success_column_id"], human_review["id"]);
+    assert_eq!(ai_review["on_fail_column_id"], human_review["id"]);
+    let prompt = ai_review["system_prompt"].as_str().unwrap();
+    assert!(prompt.contains("exactly two reviewers"));
+    assert!(prompt.contains("codex"));
+    assert!(prompt.contains("claude"));
+}
+
+#[test]
 fn template_apply_rolls_back_columns_after_intermediate_wiring_failure() {
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("template-atomic.db");

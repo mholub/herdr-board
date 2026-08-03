@@ -189,6 +189,7 @@ e2e_enable_fake_pi() {
   fi
   [ -x "$E2E_FAKE_PI_BIN_DIR/pi" ] || fail "fake pi missing/not executable"
   [ -x "$E2E_FAKE_PI_BIN_DIR/claude" ] || fail "fake claude missing/not executable"
+  [ -x "$E2E_FAKE_PI_BIN_DIR/codex" ] || fail "fake codex missing/not executable"
   export E2E_FAKE_PI_BIN_DIR
   export PATH="$E2E_FAKE_PI_BIN_DIR:$REPO_ROOT/target/release:$PATH"
   export E2E_FAKE_MANAGED_FUNCTIONS=1 E2E_FAKE_MANAGED_ZDOT=1
@@ -228,6 +229,7 @@ e2e_enable_fake_pi() {
     printf 'export BASH_ENV=/dev/null ENV=/dev/null\n'
     printf 'pi() { exec %q/pi "$@"; }\n' "$E2E_FAKE_PI_BIN_DIR"
     printf 'claude() { exec %q/claude "$@"; }\n' "$E2E_FAKE_PI_BIN_DIR"
+    printf 'codex() { exec %q/codex "$@"; }\n' "$E2E_FAKE_PI_BIN_DIR"
   } >"$E2E_MANAGED_ZDOTDIR/.zshenv"
   cp "$E2E_MANAGED_ZDOTDIR/.zshenv" "$E2E_MANAGED_ZDOTDIR/.zshrc"
   cp "$E2E_MANAGED_ZDOTDIR/.zshenv" "$E2E_MANAGED_HOME/.bashrc"
@@ -240,7 +242,8 @@ e2e_enable_fake_pi() {
   # these names to the checked-in fixtures even before its controlled rc runs.
   pi() { exec "$E2E_FAKE_PI_BIN_DIR/pi" "$@"; }
   claude() { exec "$E2E_FAKE_PI_BIN_DIR/claude" "$@"; }
-  export -f pi claude
+  codex() { exec "$E2E_FAKE_PI_BIN_DIR/codex" "$@"; }
+  export -f pi claude codex
 }
 
 # Resolve Herdr while the caller's PATH is still available. Managed panes use a
@@ -1737,6 +1740,7 @@ e2e_ws_create() {
       --env "ENV=/dev/null"
       --env "BASH_FUNC_pi%%=() { exec \"$E2E_FAKE_PI_BIN_DIR/pi\" \"\$@\"; }"
       --env "BASH_FUNC_claude%%=() { exec \"$E2E_FAKE_PI_BIN_DIR/claude\" \"\$@\"; }"
+      --env "BASH_FUNC_codex%%=() { exec \"$E2E_FAKE_PI_BIN_DIR/codex\" \"\$@\"; }"
     )
   fi
   e2e_session_target_verify "$pid" "$identity" "${sock:-${E2E_SESSION_SOCKET:-}}" \

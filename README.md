@@ -74,7 +74,9 @@ agent skill, and named-session notes, see [`docs/install.md`](docs/install.md).
 
 1. Open the board with the plugin action or an optional keybinding. Herdr's focused pane selects
    its Git-root/CWD board; press `b` to switch boards or open the preserved `Global` board.
-2. On an empty board press `T` to apply the example pipeline, or `N` to create your own columns.
+2. On an empty board press `T` to apply the configured default template, or `N` to create your own
+   columns. The default remains `pipeline`; set `default_template = "plan-review"` for manual plan
+   approval, implementation, two-reviewer AI review, polish, and human review.
 3. Press `n` to create a card. Pi is selected by default. Leave model at `(default)` to use Pi's
    configured default, choose thinking effort if needed, then select the session and workspace.
    Permission appears only for harnesses that support it (Pi does not).
@@ -95,7 +97,9 @@ board move <new-card-id> Execute
 `pi` is the default built-in harness. An omitted model lets Pi use its current configured default;
 an explicit model uses Pi's `provider/model` form. Board effort maps to Pi `--thinking`. Pi has no
 board permission mode and rejects `--permission`. Claude remains available explicitly with
-`--harness claude` and keeps its model/effort/permission behavior.
+`--harness claude` and keeps its model/effort/permission behavior. Codex is also a managed built-in
+with `--harness codex`; its model, reasoning effort, sandbox mode, developer instructions, native
+resume/fork, and runtime-created conversation id are preserved by the board.
 
 ## How it works
 

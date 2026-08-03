@@ -55,17 +55,17 @@ pub use switcher::enter_boards_level;
 
 pub(crate) use state::column_options;
 
-/// The only template that exists today. Single source of truth so the board
-/// `T` key and the switcher's "Apply template" row can't drift apart.
-pub const PIPELINE_TEMPLATE: &str = "pipeline";
+/// Ask the daemon to resolve its configured default template. Single source
+/// of truth so the board `T` key and switcher action cannot drift apart.
+pub const DEFAULT_TEMPLATE: &str = "default";
 
-/// Shared gate for applying [`PIPELINE_TEMPLATE`]: only onto an empty board
+/// Shared gate for applying [`DEFAULT_TEMPLATE`]: only onto an empty board
 /// (`App::is_empty_board`), otherwise raises the same explanatory toast
 /// everywhere it's invoked from (board `T` key, switcher "Apply template"
 /// row) instead of silently doing nothing.
 pub(super) fn apply_template(app: &mut App) -> Vec<Effect> {
     if app.is_empty_board() {
-        return vec![Effect::TemplateApply(PIPELINE_TEMPLATE.into())];
+        return vec![Effect::TemplateApply(DEFAULT_TEMPLATE.into())];
     }
     app.set_toast("template only applies to an empty board", true);
     vec![]

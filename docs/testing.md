@@ -288,7 +288,8 @@ Its intended contract is one authorized Haiku/low attempt with no retry or fallb
   script. The standard suite creates a mode-`0700` managed root with controlled `HOME`, `ZDOTDIR`,
   rc files, `PATH`, and exported fake-provider functions; it never sources user rc files. It
   resolves the Herdr executable to an absolute path before narrowing the managed pane `PATH`.
-  Built-in managed agents see checked-in `e2e/fake-bin/pi` and `e2e/fake-bin/claude` only inside
+  Built-in managed agents see checked-in `e2e/fake-bin/pi`, `e2e/fake-bin/claude`, and
+  `e2e/fake-bin/codex` only inside
   the disposable Herdr server/workspaces. The fixtures record argv/readiness/prompt evidence
   under the scenario temp dir and call only the isolated `board comment`/`board done`; they never
   replace user installations or make model calls.
@@ -386,7 +387,7 @@ Checklist:
 | **Tab labels are not unique** | New runs resolve `card-<id>` tabs and shell anchors only by exact ids reconstructed from scoped durable panes; schema v13 retains the anchor id introduced in v12. Duplicate tab/anchor labels and legacy `kanban` are never adopted as ownership proof. A renamed exact anchor remains owned; a missing anchor is recovered only from an exact durable child, otherwise a fresh tab is created. Legacy rows retain their historical lookup. |
 | **Agent names are exclusive** | While a pane is open its agent name is reserved. A collision (e.g. the session already has a `card-1-execute` pane) makes the daemon retry as `card-1-execute-r<run>`. Assertions must accept the optional `-r<n>` suffix. |
 | **A newly split pane can be busy** | Herdr may return typed `agent_pane_busy` while the child still drains prior state. The daemon retries the exact managed `agent.start` request twice on that same owned child with 100ms/200ms backoff; persistent busy closes only that child and leaves the shell anchor. Do not treat it as `pane_not_found`: that error triggers one bounded full placement rediscovery from `tab.list`. |
-| **Managed and configured pane identity differ** | Protocol-17 managed Pi/Claude panes expose the managed kind in `pane.agent`; configured panes are renamed to the daemon-assigned `card-<id>-<column>` label and remain unmanaged. Match the appropriate field and still accept the optional `-r<n>` name suffix. |
+| **Managed and configured pane identity differ** | Protocol-17 managed Pi/Claude/Codex panes expose the managed kind in `pane.agent`; configured panes are renamed to the daemon-assigned `card-<id>-<column>` label and remain unmanaged. Match the appropriate field and still accept the optional `-r<n>` name suffix. |
 | **`pane.layout` nests under `layout`** | `hrpc pane.layout …` returns `{"type":"pane_layout","layout":{…panes,splits…}}`; read `.layout.panes`. |
 | **Never `pkill` by "board daemon"** | That pattern matches your own shell too. Stop only the daemon you started after verifying its signed platform identity token (`e2e_daemon_stop`); PID liveness alone is insufficient. Linux uses `/proc`; Darwin uses native process APIs. Inspect only exact PIDs emitted by the invocation. |
 | **Leaked ephemeral session from an aborted run** | If a run is killed before cleanup, an `hb-e2e-*` session may linger. Remove it wholesale: `herdr session stop <name> && herdr session delete <name>` (this closes its workspaces too). List leftovers with `herdr session list`. |

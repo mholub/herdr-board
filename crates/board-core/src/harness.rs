@@ -1,7 +1,7 @@
 //! Harness adapters: turn resolved settings + a prompt into `(argv, env)`.
 //!
 //! Two kinds:
-//! - built-ins `pi` and `claude` — flags exactly per `docs/protocol.md`;
+//! - built-ins `pi`, `claude`, and `codex` — flags exactly per `docs/protocol.md`;
 //! - config-defined harnesses — an argv template with `{model}`/`{effort}`/
 //!   `{permission_mode}` placeholders; prompt via `BOARD_PROMPT` env.
 
@@ -13,7 +13,7 @@ use crate::prompt::EffectiveSettings;
 /// Harness stored on newly-created cards when the caller omits one.
 pub const DEFAULT_HARNESS: &str = "pi";
 /// Built-ins routed without config-defined argv/env reconstruction.
-pub const BUILTIN_HARNESSES: [&str; 2] = ["pi", "claude"];
+pub const BUILTIN_HARNESSES: [&str; 3] = ["pi", "claude", "codex"];
 
 pub fn is_builtin_harness(name: &str) -> bool {
     BUILTIN_HARNESSES.contains(&name)
@@ -64,6 +64,9 @@ pub struct HarnessInvocation {
     /// Harness session id that the card/run should persist. Custom harnesses do
     /// not participate in built-in session bookkeeping and return `None`.
     pub resulting_session_id: Option<String>,
+    /// Whether the daemon must persist Herdr's detected conversation id after
+    /// launch. Codex cannot accept a target uuid for new or forked sessions.
+    pub discover_session_id: bool,
 }
 
 /// Errors from building a harness invocation.
@@ -160,6 +163,13 @@ pub fn session_argv(
                 Some(id.clone()),
             )),
         },
+        "codex" => match session {
+            SessionPlan::Mint => Ok((Vec::new(), None)),
+            SessionPlan::Resume(id) => {
+                Ok((vec!["resume".to_string(), id.clone()], Some(id.clone())))
+            }
+            SessionPlan::Fork(id) => Ok((vec!["fork".to_string(), id.clone()], None)),
+        },
         other => Err(HarnessError::UnknownHarness(other.to_string())),
     }
 }
@@ -195,6 +205,17 @@ fn strip_session_flags(harness_name: &str, argv: &[String]) -> Vec<String> {
             }
         }
     }
+    out
+}
+
+fn rethread_codex_session(argv: &[String], session_id: &str) -> Vec<String> {
+    let mut options = match argv.get(1).map(String::as_str) {
+        Some("resume" | "fork") if argv.len() >= 3 => argv[2..argv.len() - 1].to_vec(),
+        _ => argv.get(1..).unwrap_or_default().to_vec(),
+    };
+    let mut out = vec!["codex".to_string(), "resume".to_string()];
+    out.append(&mut options);
+    out.push(session_id.to_string());
     out
 }
 
@@ -246,7 +267,9 @@ pub fn resume_invocation(
         return Err(HarnessError::MissingResumeSession);
     }
 
-    let argv = if is_builtin_harness(harness_name) {
+    let argv = if harness_name == "codex" {
+        rethread_codex_session(&persisted.argv, session_id)
+    } else if is_builtin_harness(harness_name) {
         // Fail closed on the legacy all-in-one form (see the invariant above).
         if persisted.argv.iter().any(|arg| arg == "--") {
             return Err(HarnessError::ResumeLegacyArgv(harness_name.to_string()));
@@ -391,6 +414,7 @@ pub fn pi_argv(
         argv,
         env: Vec::new(),
         resulting_session_id: Some(resulting_session_id),
+        discover_session_id: false,
     })
 }
 
@@ -409,6 +433,9 @@ pub fn build_invocation(
     }
     if harness_name == "claude" {
         return managed_claude_invocation(settings, session, minted_uuid, prompt);
+    }
+    if harness_name == "codex" {
+        return managed_codex_invocation(settings, session, prompt);
     }
 
     let def = config
@@ -435,6 +462,7 @@ pub fn build_invocation(
         argv,
         env,
         resulting_session_id: None,
+        discover_session_id: false,
     })
 }
 
@@ -470,6 +498,7 @@ fn managed_pi_invocation(
         argv,
         env: Vec::new(),
         resulting_session_id: Some(resulting_session_id),
+        discover_session_id: false,
     })
 }
 
@@ -503,6 +532,51 @@ fn managed_claude_invocation(
         argv,
         env: Vec::new(),
         resulting_session_id,
+        discover_session_id: false,
+    })
+}
+
+/// Build a protocol-17 managed Codex launch. Codex creates conversation ids
+/// itself, so new and forked launches ask the daemon to persist Herdr's
+/// detected `agent_session` value after startup.
+fn managed_codex_invocation(
+    settings: &EffectiveSettings,
+    session: &SessionPlan,
+    prompt: &str,
+) -> Result<HarnessInvocation, HarnessError> {
+    let mut options = Vec::new();
+    if let Some(model) = &settings.model {
+        options.extend(["--model".to_string(), model.clone()]);
+    }
+    if let Some(effort) = settings.effort {
+        options.extend([
+            "--config".to_string(),
+            format!("model_reasoning_effort=\"{}\"", effort.as_str()),
+        ]);
+    }
+    if let Some(permission) = &settings.permission_mode {
+        options.extend(["--sandbox".to_string(), permission.clone()]);
+    }
+
+    let (session_command, resulting_session_id) = session_argv("codex", session, None)?;
+    let mut argv = vec!["codex".to_string()];
+    match session {
+        SessionPlan::Mint => argv.extend(options),
+        SessionPlan::Resume(_) | SessionPlan::Fork(_) => {
+            argv.push(session_command[0].clone());
+            argv.extend(options);
+            argv.push(session_command[1].clone());
+        }
+    }
+
+    Ok(HarnessInvocation {
+        agent_kind: Some("codex".to_string()),
+        initial_prompt: Some(prompt.to_string()),
+        system_prompt: Some(protocol_system_prompt(settings.system_prompt.as_deref())),
+        argv,
+        env: Vec::new(),
+        resulting_session_id,
+        discover_session_id: matches!(session, SessionPlan::Mint | SessionPlan::Fork(_)),
     })
 }
 

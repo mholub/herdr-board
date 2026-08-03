@@ -20,7 +20,7 @@ pub use crate::engine::PermissionContext;
 
 /// The uniform capability interface every harness adapter must expose.
 ///
-/// Built-ins (`pi`, `claude`) and config-defined harnesses all implement this;
+/// Built-ins (`pi`, `claude`, `codex`) and config-defined harnesses all implement this;
 /// the daemon turns a `dyn HarnessMeta` into the wire [`HarnessCapabilities`]
 /// snapshot served by `harness.capabilities`. The TUI/CLI never see the trait —
 /// they consume the snapshot — so the trait is purely the daemon-side adapter
@@ -260,6 +260,33 @@ impl HarnessMeta for Claude {
     }
 }
 
+/// Built-in Codex adapter (Codex CLI 0.146.0).
+pub struct Codex;
+
+impl HarnessMeta for Codex {
+    fn id(&self) -> &str {
+        "codex"
+    }
+    fn models(&self) -> Vec<ModelInfo> {
+        Vec::new()
+    }
+    fn efforts(&self, _model: Option<&str>) -> Vec<Effort> {
+        [Effort::Low, Effort::Medium, Effort::High, Effort::Xhigh].to_vec()
+    }
+    fn permissions(&self) -> Vec<String> {
+        ["read-only", "workspace-write", "danger-full-access"]
+            .into_iter()
+            .map(str::to_string)
+            .collect()
+    }
+    fn model_freeform(&self) -> bool {
+        true
+    }
+    fn resume(&self) -> ResumeSupport {
+        ResumeSupport::ByConversationId
+    }
+}
+
 /// Owning adapter for a config-defined harness (`[harness.NAME]`).
 pub struct ConfigHarness {
     name: String,
@@ -325,6 +352,7 @@ pub fn meta_for(harness: &str, config: &Config) -> Option<Box<dyn HarnessMeta>> 
     match harness {
         "pi" => Some(Box::new(Pi)),
         "claude" => Some(Box::new(Claude)),
+        "codex" => Some(Box::new(Codex)),
         _ => config.harness.get(harness).map(|def| {
             Box::new(ConfigHarness {
                 name: harness.to_string(),
@@ -334,7 +362,7 @@ pub fn meta_for(harness: &str, config: &Config) -> Option<Box<dyn HarnessMeta>> 
     }
 }
 
-/// Every harness the daemon knows about: built-ins (`pi`, `claude`) in their
+/// Every harness the daemon knows about: built-ins (`pi`, `claude`, `codex`) in their
 /// declared/default order (pi is the card default, so it stays first) followed
 /// by every config-defined `[harness.NAME]` sorted, de-duplicated. This is the
 /// single source for the `harness.list` RPC and BOTH the card `harness` and
@@ -366,6 +394,11 @@ pub fn pi_capabilities() -> HarnessCapabilities {
     HarnessCapabilities::from_meta(&Pi)
 }
 
+/// Built-in Codex capabilities.
+pub fn codex_capabilities() -> HarnessCapabilities {
+    HarnessCapabilities::from_meta(&Codex)
+}
+
 /// Resolve capabilities for a built-in or config-defined harness via its
 /// [`HarnessMeta`] adapter. Unknown harness → `None`.
 pub fn capabilities_for(harness: &str, config: &Config) -> Option<HarnessCapabilities> {
@@ -373,7 +406,7 @@ pub fn capabilities_for(harness: &str, config: &Config) -> Option<HarnessCapabil
 }
 
 /// Capabilities for a harness when no [`Config`] is at hand: the built-in
-/// snapshot for `pi`/`claude`, and a permissive-but-safe fallback otherwise.
+/// snapshot for `pi`/`claude`/`codex`, and a permissive-but-safe fallback otherwise.
 ///
 /// Prefer [`capabilities_for`] wherever the config is available — it is the
 /// only path that can honour a `[harness.NAME]` declaration. This function
@@ -389,6 +422,7 @@ pub fn default_capabilities(harness: &str) -> HarnessCapabilities {
     match harness {
         "pi" => pi_capabilities(),
         "claude" => claude_capabilities(),
+        "codex" => codex_capabilities(),
         _ => HarnessCapabilities {
             harness: harness.to_string(),
             models: Vec::new(),

@@ -292,6 +292,7 @@ impl Db {
         board_id: i64,
         specs: &[ColumnCreateParams],
         wiring: &[ColumnWiring],
+        seed_name: Option<&str>,
     ) -> Result<Vec<Column>> {
         self.get_board(board_id)?;
         for spec in specs {
@@ -308,6 +309,25 @@ impl Db {
         }
 
         let tx = self.conn.unchecked_transaction()?;
+        if let Some(name) = seed_name {
+            let seed_count: i64 = tx.query_row(
+                "SELECT COUNT(*) FROM columns WHERE board_id=?1",
+                params![board_id],
+                |row| row.get(0),
+            )?;
+            if seed_count != 1 {
+                return Err(Error::InvalidState(
+                    "template seed rename requires exactly one existing column".into(),
+                ));
+            }
+            constraints::reject_duplicate(
+                tx.execute(
+                    "UPDATE columns SET name=?1 WHERE board_id=?2",
+                    params![name, board_id],
+                ),
+                || constraints::duplicate_column(name),
+            )?;
+        }
         let mut ids = Vec::with_capacity(specs.len());
         for spec in specs {
             let position: i64 = tx.query_row(
