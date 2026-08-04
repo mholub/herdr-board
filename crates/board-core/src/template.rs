@@ -9,11 +9,11 @@ pub const DEFAULT_TEMPLATE_ALIAS: &str = "default";
 
 const PLAN_PROMPT: &str = "You are in Research & Plan. Inspect the current code, history, references, ownership, and runtime path before proposing work. Do not implement. Identify scope, risks, decisions, and focused validation. Add a concise plan to the card; do not create a separate plan document unless the card asks for one.";
 
-const IMPLEMENT_PROMPT: &str = "You are in Implementation. Implement only the human-approved plan recorded on the card. Re-read the current repository state and follow its AGENTS.md instructions. Preserve unrelated changes, keep edits scoped, and run focused validation. Stop and report failure if the work now requires an unapproved architecture, public API, data contract, dependency, or broad maintenance change. Do not commit or push unless the card explicitly asks.";
+const IMPLEMENT_PROMPT: &str = "You are in Implementation. Implement only the human-approved plan recorded on the card. Re-read the current repository state and follow its AGENTS.md instructions. Preserve unrelated changes, keep edits scoped, and run focused validation. When the card is exploratory, prioritize a usable, manually testable result and avoid speculative cleanup because Manual Test comes next. Stop and report failure if the work now requires an unapproved architecture, public API, data contract, dependency, or broad maintenance change. Do not commit or push unless the card explicitly asks.";
 
 const REVIEW_PROMPT: &str = "You are the AI Review orchestrator. Read the latest human-authored `Reviewers:` directive in the card description or comments. It must name exactly two reviewers, each `codex` or `claude`; duplicates are allowed. If it is absent or invalid, do not guess: report failure for human correction. Use the Herdr skill to start both reviewers in parallel in the same repository without taking focus. Give each the card goal, approved plan, current diff, and validation evidence. Reviewers must be independent, read-only, adversarial, and check that findings are current and not already fixed. Wait for both, verify and deduplicate their findings, then add one synthesis to the card. Report success only when no actionable findings remain; otherwise report failure so the human can veto, accept, or reroute the findings.";
 
-const POLISH_PROMPT: &str = "You are in Polish. Handle only a small, local follow-up recorded on the card. Preserve unrelated changes, avoid scope expansion, and run focused validation. If the request is no longer small and local, report failure so a human can reroute it to planning or implementation.";
+const POLISH_PROMPT: &str = "You are in Polish after a human accepted the behavior in Manual Test. Clean up only the small, local quality issues recorded on the card without changing the accepted product behavior. Preserve unrelated changes, avoid scope expansion, and run focused validation. If the request is no longer small and local, report failure so a human can reroute it to planning or implementation.";
 
 const PIPELINE_PLAN_PROMPT: &str = "You are in the PLAN stage. Produce a written implementation plan and save it under docs/plans/ (or .plans/). Do not write code.";
 const PIPELINE_EXECUTE_PROMPT: &str = "You are in the EXECUTE stage. Implement the plan referenced in the card comments and run tests.";
@@ -93,8 +93,9 @@ fn plan_review(board_id: i64) -> TemplateDefinition {
             auto("Research & Plan", PLAN_PROMPT, true),
             column(board_id, "Plan Approval", Trigger::Manual),
             auto("Implementation", IMPLEMENT_PROMPT, false),
-            auto("AI Review", REVIEW_PROMPT, true),
+            column(board_id, "Manual Test", Trigger::Manual),
             auto("Polish", POLISH_PROMPT, false),
+            auto("AI Review", REVIEW_PROMPT, true),
             column(board_id, "Human Review", Trigger::Manual),
             column(board_id, "Done", Trigger::Manual),
         ],
@@ -107,17 +108,17 @@ fn plan_review(board_id: i64) -> TemplateDefinition {
             ColumnWiring {
                 column_index: 2,
                 on_success: Some(ColumnTarget::Created(3)),
-                on_fail: Some(ColumnTarget::Created(5)),
-            },
-            ColumnWiring {
-                column_index: 3,
-                on_success: Some(ColumnTarget::Created(5)),
-                on_fail: Some(ColumnTarget::Created(5)),
+                on_fail: Some(ColumnTarget::Created(6)),
             },
             ColumnWiring {
                 column_index: 4,
                 on_success: Some(ColumnTarget::Created(5)),
-                on_fail: Some(ColumnTarget::Created(5)),
+                on_fail: Some(ColumnTarget::Created(6)),
+            },
+            ColumnWiring {
+                column_index: 5,
+                on_success: Some(ColumnTarget::Created(6)),
+                on_fail: Some(ColumnTarget::Created(6)),
             },
         ],
     }

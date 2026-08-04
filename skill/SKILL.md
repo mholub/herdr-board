@@ -83,8 +83,19 @@ board template apply pipeline|plan-review|default [--json]
 `board show` and `board open` return a snapshot with `board`, `columns`, `cards`, and `active_runs`.
 Templates are atomic and only apply to an empty board containing exactly the seed `Todo` column;
 they return the resulting column array. `default` resolves the daemon's `default_template` setting.
-`plan-review` creates manual plan approval, Codex implementation, a fresh two-reviewer AI review
-controlled by a human `Reviewers:` directive, a small-work polish path, human review, and done.
+`plan-review` creates manual plan approval, Codex implementation, a Manual Test gate, optional
+Polish, a fresh two-reviewer AI review controlled by a human `Reviewers:` directive, human review,
+and done. Implementation success always stops at Manual Test. From there, a human moves the card back
+to Implementation for another playable iteration, directly to AI Review when cleanup is unnecessary,
+or to Polish after accepting the behavior but before code-quality review. Successful Polish continues
+to AI Review; actionable AI findings stop in Human Review for veto or rerouting.
+
+Every automatic stage starts a new visible Herdr pane/process. Unless its column has
+`fresh_session = true`, that process resumes the card's latest harness conversation; the card stores
+one current conversation id rather than one id per column. Every run also reconstructs its task from
+the card description plus the latest 20 non-deleted comments, so comments are the durable handoff even
+when a stage starts fresh. In `plan-review`, Research & Plan starts fresh, Implementation and Polish
+resume the latest conversation, and AI Review starts fresh for reviewer independence.
 
 ### Cards
 

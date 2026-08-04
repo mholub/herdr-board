@@ -214,8 +214,9 @@ fn configured_default_plan_review_template_has_manual_gate_and_two_reviewer_stag
             "Research & Plan",
             "Plan Approval",
             "Implementation",
-            "AI Review",
+            "Manual Test",
             "Polish",
+            "AI Review",
             "Human Review",
             "Done",
         ]
@@ -223,14 +224,19 @@ fn configured_default_plan_review_template_has_manual_gate_and_two_reviewer_stag
     let research = &columns[1];
     let plan_approval = &columns[2];
     let implementation = &columns[3];
-    let ai_review = &columns[4];
-    let human_review = &columns[6];
+    let manual_test = &columns[4];
+    let polish = &columns[5];
+    let ai_review = &columns[6];
+    let human_review = &columns[7];
     assert_eq!(research["harness_override"], "codex");
     assert_eq!(research["on_success_column_id"], plan_approval["id"]);
     assert_eq!(research["on_fail_column_id"], plan_approval["id"]);
     assert_eq!(plan_approval["trigger"], "manual");
-    assert_eq!(implementation["on_success_column_id"], ai_review["id"]);
+    assert_eq!(implementation["on_success_column_id"], manual_test["id"]);
     assert_eq!(implementation["on_fail_column_id"], human_review["id"]);
+    assert_eq!(manual_test["trigger"], "manual");
+    assert_eq!(polish["on_success_column_id"], ai_review["id"]);
+    assert_eq!(polish["on_fail_column_id"], human_review["id"]);
     assert_eq!(ai_review["fresh_session"], true);
     assert_eq!(ai_review["on_success_column_id"], human_review["id"]);
     assert_eq!(ai_review["on_fail_column_id"], human_review["id"]);

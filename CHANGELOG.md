@@ -6,7 +6,7 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
-- Add managed Codex launch/resume/fork support with detected conversation-id persistence, plus a configurable default template and a `plan-review` workflow with manual plan approval and two-reviewer AI review.
+- Add managed Codex launch/resume/fork support with detected conversation-id persistence, plus a configurable default template and a `plan-review` workflow with manual plan approval, manual product testing, optional polish, and two-reviewer AI review.
 
 ## [0.10.0] - 2026-07-30
 

@@ -1,4 +1,5 @@
 use board_core::client::BoardClient;
+use board_core::protocol::Trigger;
 
 use super::{fake_card, json_output, todo_id, TestDaemon};
 
@@ -348,16 +349,29 @@ fn plan_review_template_is_available_through_public_client() {
             "Research & Plan",
             "Plan Approval",
             "Implementation",
-            "AI Review",
+            "Manual Test",
             "Polish",
+            "AI Review",
             "Human Review",
             "Done",
         ]
     );
+    let implementation = cols
+        .iter()
+        .find(|column| column.name == "Implementation")
+        .unwrap();
+    let manual_test = cols
+        .iter()
+        .find(|column| column.name == "Manual Test")
+        .unwrap();
+    let polish = cols.iter().find(|column| column.name == "Polish").unwrap();
     let review = cols
         .iter()
         .find(|column| column.name == "AI Review")
         .unwrap();
+    assert_eq!(implementation.on_success_column_id, Some(manual_test.id));
+    assert_eq!(manual_test.trigger, Trigger::Manual);
+    assert_eq!(polish.on_success_column_id, Some(review.id));
     assert_eq!(review.harness_override.as_deref(), Some("codex"));
     assert!(review.fresh_session);
 }

@@ -109,7 +109,14 @@ Boards are independent pipelines keyed by canonical path. `Global` is board `id=
 - `column.update {id, …any subset of the above}` → `Column` (name/trigger/etc.; nullable update fields use the tri-state encoding below)
 - `column.reorder {id, position}` → `[Column…]`
 - `column.delete {id, move_cards_to?}` → `{deleted:true}`; destination must belong to the same board; error 3 if cards lack a destination or any card has an open run (`queued|running|blocked|awaiting`; `done` is not open).
-- `template.apply {name:"pipeline"|"plan-review"|"default", board_id?}` → the requested board's full column set (omitted = `Global`; error 3 unless it has only seed `Todo` and no cards). `default` resolves `default_template` from configuration (`pipeline` when omitted). `plan-review` renames the seed to `Backlog` and creates research/planning, manual plan approval, implementation, fresh two-reviewer AI review, polish, human review, and done stages; automatic stages use managed Codex.
+- `template.apply {name:"pipeline"|"plan-review"|"default", board_id?}` → the requested board's full column set (omitted = `Global`; error 3 unless it has only seed `Todo` and no cards). `default` resolves `default_template` from configuration (`pipeline` when omitted). `plan-review` renames the seed to `Backlog` and creates research/planning, manual plan approval, implementation, a Manual Test gate, optional polish, fresh two-reviewer AI review, human review, and done stages; automatic stages use managed Codex. Implementation success stops at Manual Test. A human can loop the card back to Implementation, skip directly to AI Review, or send accepted behavior through Polish; successful Polish continues to AI Review.
+
+Each automatic-stage entry creates a new Herdr pane/process. Session continuity is separate: unless
+the column has `fresh_session = true`, the run resumes the card's latest harness conversation id.
+The card owns one latest conversation id, not a per-column map. Every run still receives the card
+description and latest 20 non-deleted comments, so those comments provide the durable cross-session
+handoff. `plan-review` starts Research & Plan and AI Review fresh; Implementation and Polish resume
+the latest conversation.
 
 The store enforces board boundaries: card create, column-delete destinations,
 `on_success`/`on_fail`, templates, and automatic transitions cannot reference another board;

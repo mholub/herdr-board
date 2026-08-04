@@ -76,7 +76,8 @@ agent skill, and named-session notes, see [`docs/install.md`](docs/install.md).
    its Git-root/CWD board; press `b` to switch boards or open the preserved `Global` board.
 2. On an empty board press `T` to apply the configured default template, or `N` to create your own
    columns. The default remains `pipeline`; set `default_template = "plan-review"` for manual plan
-   approval, implementation, two-reviewer AI review, polish, and human review.
+   approval, implementation, a manual testing gate, optional polish, two-reviewer AI review, and
+   human review.
 3. Press `n` to create a card. Pi is selected by default. Leave model at `(default)` to use Pi's
    configured default, choose thinking effort if needed, then select the session and workspace.
    Permission appears only for harnesses that support it (Pi does not).
