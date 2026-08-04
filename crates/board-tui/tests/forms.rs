@@ -63,21 +63,34 @@ fn cycling_a_choice_keeps_the_description_cursor_where_the_user_left_it() {
 fn card_harness_select_consumes_harness_list() {
     // The card Harness selector draws from the shared `harness.list` source
     // (Form::harnesses) — the same source as the column harness_override
-    // selector — so config-defined harnesses appear there too, with pi first
+    // selector — so config-defined harnesses appear there too, with Codex first
     // (the card default).
     let mut form = Form::card_create(1);
     let before = choice_labels(&form, FieldId::Harness);
-    assert_eq!(before, vec!["pi".to_string(), "claude".to_string()]);
+    assert_eq!(
+        before,
+        vec!["codex".to_string(), "claude".to_string(), "pi".to_string()]
+    );
     form.apply_options(
         None,
-        Some(vec!["pi".into(), "claude".into(), "fake".into()]),
+        Some(vec![
+            "codex".into(),
+            "claude".into(),
+            "pi".into(),
+            "fake".into(),
+        ]),
         None,
         None,
     );
     let after = choice_labels(&form, FieldId::Harness);
     assert_eq!(
         after,
-        vec!["pi".to_string(), "claude".to_string(), "fake".to_string()]
+        vec![
+            "codex".to_string(),
+            "claude".to_string(),
+            "pi".to_string(),
+            "fake".to_string(),
+        ]
     );
 }
 
@@ -160,6 +173,8 @@ fn column_override_permission_menu_never_offers_a_value_the_validator_rejects() 
 fn card_selectors_fall_back_to_default_capabilities_per_harness() {
     // pi: full effort ladder, no permission modes → field hidden.
     let mut pi = Form::card_create(1);
+    set_choice(&mut pi, FieldId::Harness, "pi");
+    pi.apply_options(None, None, None, None);
     assert_eq!(
         choice_labels(&pi, FieldId::Effort),
         vec![

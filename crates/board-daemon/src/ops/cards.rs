@@ -2,8 +2,9 @@ use super::*;
 use crate::dispatch::prepare_enqueue_values;
 use board_core::db::{Db, BOARD_ID};
 use board_core::engine::{
-    decide_entry, merge_card_update, validate_card_archive, validate_card_edit,
-    validate_card_settings, validate_card_values, validate_effective_settings,
+    apply_card_create_defaults, decide_entry, merge_card_update, resolve_card_title,
+    validate_card_archive, validate_card_edit, validate_card_settings, validate_card_values,
+    validate_effective_settings,
 };
 use board_core::harness::DEFAULT_HARNESS;
 use board_core::model::Card;
@@ -45,7 +46,9 @@ fn pending_create_card(db: &Db, p: &CardCreateParams) -> Result<Card> {
     })
 }
 
-pub(super) fn card_create(d: &Arc<Daemon>, p: CardCreateParams) -> Result<Value> {
+pub(super) fn card_create(d: &Arc<Daemon>, mut p: CardCreateParams) -> Result<Value> {
+    apply_card_create_defaults(&mut p);
+    p.title = resolve_card_title(&p.title, p.description.as_deref())?;
     validate_card_values(
         p.harness.as_deref().unwrap_or(DEFAULT_HARNESS),
         p.model.as_deref(),

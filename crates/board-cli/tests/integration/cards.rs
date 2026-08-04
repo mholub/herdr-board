@@ -7,7 +7,7 @@ use board_core::client::BoardClient;
 use board_core::protocol::{CardCreateParams, Effort};
 use serde_json::Value;
 
-use super::{json_output, old_card, TestDaemon};
+use super::{json_error, json_output, old_card, TestDaemon};
 
 fn json_card_ids(out: &Output) -> Vec<i64> {
     json_output(out)
@@ -151,6 +151,29 @@ fn canonical_card_create_edit_move_and_delete() {
     let deleted = json_output(&td.board(&["card", "delete", &id.to_string(), "--yes", "--json"]));
     assert_eq!(deleted["deleted"], true);
     assert!(td.client().card_get(id).is_err());
+}
+
+#[test]
+fn card_create_derives_an_omitted_title_from_description() {
+    let td = TestDaemon::start(&[]);
+    let created = json_output(&td.board(&[
+        "card",
+        "create",
+        "--description",
+        "\n  Add   retry support  \nMore implementation detail.",
+        "--json",
+    ]));
+    assert_eq!(created["title"], "Add retry support");
+    assert_eq!(created["harness"], "codex");
+    assert_eq!(created["model"], "gpt-5.6-sol");
+    assert_eq!(created["effort"], "high");
+
+    let error = json_error(&td.board(&["card", "create", "--json"]));
+    assert_eq!(error["error"]["code"], 1);
+    assert!(error["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("title or description"));
 }
 
 #[test]

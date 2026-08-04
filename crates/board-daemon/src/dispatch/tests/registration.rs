@@ -132,6 +132,7 @@ async fn spawn_failure_for_missing_pi_marks_run_failed_with_system_comment() {
         let card = db
             .create_card(&CardCreateParams {
                 title: "missing pi".into(),
+                harness: Some("pi".into()),
                 ..Default::default()
             })
             .unwrap();

@@ -9,11 +9,16 @@ use crate::capability::ResumeSupport;
 use crate::config::Config;
 use crate::launch::ExecutionSpec;
 use crate::prompt::EffectiveSettings;
+use crate::protocol::Effort;
 
 /// Harness stored on newly-created cards when the caller omits one.
-pub const DEFAULT_HARNESS: &str = "pi";
+pub const DEFAULT_HARNESS: &str = "codex";
+/// Model stored on a new Codex card when the caller omits one.
+pub const DEFAULT_CODEX_MODEL: &str = "gpt-5.6-sol";
+/// Reasoning effort stored on a new Codex card when the caller omits one.
+pub const DEFAULT_CODEX_EFFORT: Effort = Effort::High;
 /// Built-ins routed without config-defined argv/env reconstruction.
-pub const BUILTIN_HARNESSES: [&str; 3] = ["pi", "claude", "codex"];
+pub const BUILTIN_HARNESSES: [&str; 3] = ["codex", "claude", "pi"];
 
 pub fn is_builtin_harness(name: &str) -> bool {
     BUILTIN_HARNESSES.contains(&name)
@@ -247,7 +252,7 @@ pub const BOARD_RESCUE: &str = "BOARD_RESCUE";
 ///
 /// Re-threading works by [`strip_session_flags`] + append, which is only sound
 /// while the persisted argv is *startup-only*. That holds for every spec
-/// [`build_invocation`] produces (protocol-17 managed launches keep both prompt
+/// [`build_invocation`] produces (protocol-19 managed launches keep both prompt
 /// channels out of argv). The legacy all-in-one helpers [`claude_argv`] /
 /// [`pi_argv`] do **not** hold it: they end in `-- "<prompt>"` (claude) or a
 /// bare positional (pi). If such an argv were ever persisted, appending resume
@@ -333,7 +338,7 @@ pub fn protocol_system_prompt(column_prompt: Option<&str>) -> String {
 
 /// Build the legacy all-in-one argv for the builtin `claude` harness.
 ///
-/// This public helper is retained for existing callers; protocol-17 dispatch
+/// This public helper is retained for existing callers; protocol-19 dispatch
 /// uses [`build_invocation`] so prompts are not included in startup argv.
 ///
 /// `claude [--model M] [--effort E] [--permission-mode P] --append-system-prompt SP
@@ -375,7 +380,7 @@ pub fn claude_argv(
 
 /// Build the legacy all-in-one argv/session result for the built-in Pi harness.
 ///
-/// This public helper is retained for existing callers; protocol-17 dispatch
+/// This public helper is retained for existing callers; protocol-19 dispatch
 /// uses [`build_invocation`] so prompts are not included in startup argv.
 /// Pi takes a normal positional prompt (no Claude `--` delimiter). Prefixing it
 /// with non-flag text ensures a card description beginning with `-` cannot be
@@ -466,7 +471,7 @@ pub fn build_invocation(
     })
 }
 
-/// Build a protocol-17 managed Pi launch. Unlike the legacy argv helper above,
+/// Build a protocol-19 managed Pi launch. Unlike the legacy argv helper above,
 /// this keeps both prompt channels out of startup argv so Herdr can start the
 /// agent first and submit the card task only after it is interactive.
 fn managed_pi_invocation(
@@ -502,7 +507,7 @@ fn managed_pi_invocation(
     })
 }
 
-/// Build a protocol-17 managed Claude launch while preserving the established
+/// Build a protocol-19 managed Claude launch while preserving the established
 /// model/effort/permission/session flag ordering exactly.
 fn managed_claude_invocation(
     settings: &EffectiveSettings,
@@ -536,7 +541,7 @@ fn managed_claude_invocation(
     })
 }
 
-/// Build a protocol-17 managed Codex launch. Codex creates conversation ids
+/// Build a protocol-19 managed Codex launch. Codex creates conversation ids
 /// itself, so new and forked launches ask the daemon to persist Herdr's
 /// detected `agent_session` value after startup.
 fn managed_codex_invocation(

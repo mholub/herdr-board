@@ -20,8 +20,10 @@ pub use transitions::{
     MAX_AUTO_HOPS,
 };
 pub use validation::{
-    merge_card_update, merge_column_update, validate_card_archive, validate_card_edit,
-    validate_card_settings, validate_card_space, validate_card_values, validate_column_delete,
-    validate_column_permission_override, validate_column_settings, validate_column_update,
-    validate_column_values, validate_effective_settings, PermissionContext, ValidationError,
+    apply_card_create_defaults, merge_card_update, merge_column_update, resolve_card_title,
+    validate_card_archive, validate_card_edit, validate_card_settings, validate_card_space,
+    validate_card_values, validate_column_delete, validate_column_permission_override,
+    validate_column_settings, validate_column_update, validate_column_values,
+    validate_effective_settings, PermissionContext, ValidationError,
+    GENERATED_CARD_TITLE_MAX_CHARS,
 };

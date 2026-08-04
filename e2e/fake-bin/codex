@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Hermetic, no-provider Codex stand-in for protocol-17 managed launches.
+# Hermetic, no-provider Codex stand-in for protocol-19 managed launches.
 set -euo pipefail
 
 : "${BOARD_CARD_ID:?BOARD_CARD_ID required}"

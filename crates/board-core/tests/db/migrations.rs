@@ -379,7 +379,7 @@ fn migration_v4_preserves_claude_cards_and_accepts_pi_efforts() {
             ..Default::default()
         })
         .unwrap();
-    assert_eq!(pi.harness, "pi");
+    assert_eq!(pi.harness, "codex");
     assert_eq!(pi.effort, Some(Effort::Minimal));
 }
 

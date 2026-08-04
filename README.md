@@ -1,7 +1,7 @@
 # herdr-board
 
 ![Rust](https://img.shields.io/badge/rust-edition%202021-orange.svg)
-![herdr 0.7.5](https://img.shields.io/badge/herdr-0.7.5-8a2be2)
+![herdr 0.8.0](https://img.shields.io/badge/herdr-0.8.0-8a2be2)
 ![platforms: linux, macOS](https://img.shields.io/badge/platforms-linux%2C%20macOS-informational)
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)
 
@@ -39,13 +39,13 @@ only `Todo`.
 
 ## Install
 
-Requires exactly **Herdr 0.7.5 (protocol 17)**, Git, and a Rust toolchain with `cargo`. Linux
+Requires exactly **Herdr 0.8.0 (protocol 19)**, Git, and a Rust toolchain with `cargo`. Linux
 and macOS are supported. Ensure `~/.local/bin` is on your `PATH`. The board protocol is v1 and the
 current SQLite schema is v13; `schema.sql` defines fresh databases and the daemon applies tested
 upgrades through `board-core::db`.
 
 The daemon checks the selected Herdr socket before workspace discovery and pane launch. It rejects
-any Herdr version other than 0.7.5 and any protocol other than 17; protocol 16 is not supported.
+any Herdr version other than 0.8.0 and any protocol other than 19; protocol 17 is not supported.
 
 ```bash
 herdr plugin install nelsonPires5/herdr-board --ref v0.10.0
@@ -78,9 +78,10 @@ agent skill, and named-session notes, see [`docs/install.md`](docs/install.md).
    columns. The default remains `pipeline`; set `default_template = "plan-review"` for manual plan
    approval, implementation, a manual testing gate, optional polish, two-reviewer AI review, and
    human review.
-3. Press `n` to create a card. Pi is selected by default. Leave model at `(default)` to use Pi's
-   configured default, choose thinking effort if needed, then select the session and workspace.
-   Permission appears only for harnesses that support it (Pi does not).
+3. Press `n` to create a card. Codex is preselected with `gpt-5.6-sol` and `high` reasoning, and a
+   plugin-opened board preselects its own Herdr session and workspace. You can leave title blank: the
+   first non-empty description line becomes the title. Permission appears only for harnesses that
+   support it.
 4. Move the card into an automatic column with `m`, `H` / `L`, or drag-and-drop.
 5. Watch the agent appear in its stable `card-<id>` workspace tab. Follow progress with `Enter`
    for card detail; the agent comments and calls `board done` when its stage finishes.
@@ -88,19 +89,18 @@ agent skill, and named-session notes, see [`docs/install.md`](docs/install.md).
 The same flow from the shell:
 
 ```bash
-board card create --title "Add retry to the uploader" \
-  -d "In src/upload.rs, retry failed PUTs 3x with backoff. Add a unit test." \
-  --effort low \
+board card create \
+  -d $'Add retry to the uploader\nIn src/upload.rs, retry failed PUTs 3x with backoff. Add a unit test.' \
   --space-kind new-workspace --space-ref uploader --space-cwd /path/to/repo
 board move <new-card-id> Execute
 ```
 
-`pi` is the default built-in harness. An omitted model lets Pi use its current configured default;
-an explicit model uses Pi's `provider/model` form. Board effort maps to Pi `--thinking`. Pi has no
-board permission mode and rejects `--permission`. Claude remains available explicitly with
-`--harness claude` and keeps its model/effort/permission behavior. Codex is also a managed built-in
-with `--harness codex`; its model, reasoning effort, sandbox mode, developer instructions, native
-resume/fork, and runtime-created conversation id are preserved by the board.
+`codex` is the default built-in harness, using `gpt-5.6-sol` with `high` reasoning when model and
+effort are omitted. Its sandbox mode, developer instructions, native resume/fork, and
+runtime-created conversation id are preserved by the board. Pi remains available with `--harness
+pi`; an omitted model then uses Pi's configured default, an explicit model uses Pi's
+`provider/model` form, and board effort maps to Pi `--thinking`. Claude remains available with
+`--harness claude` and keeps its model/effort/permission behavior.
 
 ## How it works
 
@@ -275,7 +275,7 @@ typed `board_core::client::BoardClient`; only boardd touches SQLite.
 
 ## Status
 
-**v1 board protocol / schema v13 / Herdr 0.7.5 (protocol 17).** Rust with Ratatui, Rusqlite, and
+**v1 board protocol / schema v13 / Herdr 0.8.0 (protocol 19).** Rust with Ratatui, Rusqlite, and
 Tokio. See [`docs/README.md`](docs/README.md) for the full version and source-ownership matrix.
 
 ## License

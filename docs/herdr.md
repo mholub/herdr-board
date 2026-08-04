@@ -34,7 +34,7 @@ live agent status (idle / working / blocked / done) back to herdr. Manage them w
 - `herdr integration install <name>` / `herdr integration uninstall <name>`
 - `herdr integration status [--outdated-only]`
 
-As of herdr 0.7.5 the installable integrations are: **pi, omp, claude, codex,
+As of herdr 0.8.0 the installable integrations are: **pi, omp, claude, codex,
 copilot, devin, droid, kimi, opencode, kilo, hermes, qodercli, cursor,
 mastracode** (get the current list from `herdr integration install --help`). On the
 2026-07-22 verification host, `herdr integration status` reported Pi **v6** and
@@ -68,9 +68,9 @@ is being dispatched. Without it, the board continues in the degraded mode descri
 standard E2E uses checked-in fake Pi and Claude executables and tests watcher status mapping
 deterministically rather than changing integrations or calling a provider.
 
-## Protocol 17 launch contract
+## Protocol 19 launch contract
 
-Herdr 0.7.5 uses pane-first managed-agent launch. For a new durable card tab,
+Herdr 0.8.0 uses pane-first managed-agent launch. For a new durable card tab,
 herdr-board first creates a shell root and reserves it as `card-<id>-anchor`.
 It then splits a run child with the required cwd/environment and calls
 `agent.start` with `{name, kind, pane_id, args, timeout_ms}` on that child only.
@@ -95,7 +95,7 @@ Labels are display metadata and never authorize a tab or pane.
 `agent.read` remains a terminal screen/scrollback read, not a semantic result
 channel.
 
-Two protocol-17 facts the rescue depends on, both observed on a live 0.7.5 socket
+Two protocol-19 facts the rescue depends on, both observed on a live 0.8.0 socket
 via `e2e/27-rescue-dead-pane.sh` rather than assumed: a pane label set with
 `pane.rename` survives a subsequent `agent.start`; and when a managed agent's
 process exits, Herdr **clears** `PaneInfo.agent` while keeping the pane open as a
@@ -121,7 +121,7 @@ own pane label/agent name is the only record of it, which is why the dedup scan
 is a hint rather than proof (see `docs/design.md` → Limitations). The dead
 `pane_id` is never reused or revived.
 
-Configured harnesses are intentionally unmanaged. Protocol 17 has a
+Configured harnesses are intentionally unmanaged. Protocol 19 has a
 `herdr pane run <PANE_ID> <COMMAND>...` CLI command but no `pane.run` socket
 method, so the daemon invokes that CLI against the selected session socket via
 a temporary runner script. Agents must still use `board comment` and `board
@@ -156,7 +156,7 @@ The checked-in schema fixture remains an upstream reference and is not rewritten
 
 This repo's herdr facts — [`docs/research.md`](research.md), [`docs/design.md`](design.md),
 and the wire shapes hard-coded in `board-herdr` — were **verified against
-Herdr 0.7.5 / protocol 17 on 2026-07-22**.
+Herdr 0.8.0 / protocol 19 on 2026-08-04**.
 
 herdr updates independently of this repo (`herdr update`, stable/preview channels).
 When something that used to work misbehaves on a newer herdr — an unknown method, a

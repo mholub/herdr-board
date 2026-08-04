@@ -1,6 +1,6 @@
 //! The single gated way to open a Herdr request connection.
 //!
-//! `AGENTS.md` pins herdr-board to exactly Herdr 0.7.5 / socket protocol 17 and
+//! `AGENTS.md` pins herdr-board to exactly Herdr 0.8.0 / socket protocol 19 and
 //! rejects every other one. The daemon opens a fresh connection per operation,
 //! so the gate has to live at the connect, not at a single startup check.
 

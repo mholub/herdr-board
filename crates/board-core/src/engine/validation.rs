@@ -1,7 +1,9 @@
 use crate::capability::{capabilities_for, efforts_for};
 use crate::config::Config;
 use crate::model::{Card, Column};
-use crate::protocol::{CardStatus, CardUpdateParams, ColumnUpdateParams, Patch, SpaceKind};
+use crate::protocol::{
+    CardCreateParams, CardStatus, CardUpdateParams, ColumnUpdateParams, Patch, SpaceKind,
+};
 
 /// Validation failures that map onto protocol error code 3 (invalid state) or 1.
 #[derive(thiserror::Error, Debug, Clone, PartialEq, Eq)]
@@ -30,6 +32,8 @@ pub enum ValidationError {
     InvalidPermission(String),
     #[error("column override depends on an explicit harness override")]
     OrphanedColumnOverride,
+    #[error("card requires a non-empty title or description")]
+    CardContentEmpty,
 }
 
 impl ValidationError {
@@ -46,9 +50,66 @@ impl ValidationError {
             | ValidationError::InvalidEffort(_)
             | ValidationError::PiPermissionUnsupported
             | ValidationError::InvalidPermission(_)
-            | ValidationError::OrphanedColumnOverride => 1,
+            | ValidationError::OrphanedColumnOverride
+            | ValidationError::CardContentEmpty => 1,
         }
     }
+}
+
+/// Maximum Unicode scalar count for a title generated from a description.
+pub const GENERATED_CARD_TITLE_MAX_CHARS: usize = 80;
+
+/// Fill the product defaults for a new card without overriding explicit
+/// values. Non-Codex harnesses retain their own model/effort defaults.
+pub fn apply_card_create_defaults(params: &mut CardCreateParams) {
+    let harness = params
+        .harness
+        .get_or_insert_with(|| crate::harness::DEFAULT_HARNESS.to_string());
+    if harness == "codex" {
+        params
+            .model
+            .get_or_insert_with(|| crate::harness::DEFAULT_CODEX_MODEL.to_string());
+        params
+            .effort
+            .get_or_insert(crate::harness::DEFAULT_CODEX_EFFORT);
+    }
+}
+
+/// Resolve the stored title for a newly-created card.
+///
+/// Explicit titles are trimmed. When omitted or blank, the first non-empty
+/// description line is whitespace-normalized and bounded for compact board
+/// rendering. At least one of title or description must contain text.
+pub fn resolve_card_title(
+    title: &str,
+    description: Option<&str>,
+) -> Result<String, ValidationError> {
+    let explicit = title.trim();
+    if !explicit.is_empty() {
+        return Ok(explicit.to_string());
+    }
+
+    let generated = description
+        .unwrap_or_default()
+        .lines()
+        .map(|line| line.split_whitespace().collect::<Vec<_>>().join(" "))
+        .find(|line| !line.is_empty())
+        .ok_or(ValidationError::CardContentEmpty)?;
+    let mut chars = generated.chars();
+    let prefix = chars
+        .by_ref()
+        .take(GENERATED_CARD_TITLE_MAX_CHARS)
+        .collect::<String>();
+    if chars.next().is_none() {
+        return Ok(prefix);
+    }
+
+    let mut bounded = prefix
+        .chars()
+        .take(GENERATED_CARD_TITLE_MAX_CHARS - 1)
+        .collect::<String>();
+    bounded.push('…');
+    Ok(bounded)
 }
 
 /// Validate a `column.delete`.

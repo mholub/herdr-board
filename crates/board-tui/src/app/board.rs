@@ -44,9 +44,10 @@ pub(super) fn board_key(app: &mut App, k: KeyEvent) -> Vec<Effect> {
         }
         KeyCode::Char('n') => {
             if let Some(col_id) = app.col_id_at(app.sel_col) {
-                app.form = Some(Form::card_create_with_session(
+                app.form = Some(Form::card_create_with_origin(
                     col_id,
                     app.origin_context.session.as_deref(),
+                    app.origin_context.workspace_id.as_deref(),
                 ));
                 app.screen = Screen::CardForm;
                 return vec![Effect::LoadFormOptions];

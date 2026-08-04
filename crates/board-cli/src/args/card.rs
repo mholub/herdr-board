@@ -10,7 +10,7 @@ pub(crate) enum CardCmd {
     /// Create a card (`new` is retained as an alias).
     #[command(alias = "new")]
     Create {
-        #[arg(long)]
+        #[arg(long, default_value_t)]
         title: String,
         #[arg(long, short = 'd')]
         description: Option<String>,

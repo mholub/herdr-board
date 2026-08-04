@@ -602,7 +602,7 @@ fn fake_herdr_socket(protocol: u32) -> FakeHerdr {
             testkit::reply(
                 req,
                 serde_json::json!({"snapshot": {
-                    "version": "0.7.5", "protocol": 17,
+                    "version": "0.8.0", "protocol": 19,
                     "workspaces": [], "tabs": [], "panes": [], "agents": []
                 }}),
             )
@@ -612,7 +612,7 @@ fn fake_herdr_socket(protocol: u32) -> FakeHerdr {
 
 #[test]
 fn watch_snapshot_rejects_a_socket_with_the_wrong_protocol() {
-    let herdr = fake_herdr_socket(16);
+    let herdr = fake_herdr_socket(17);
     let result = HerdrWatchConnector.snapshot(&herdr.socket);
     assert!(result.is_err(), "an incompatible socket must not snapshot");
     // A snapshot that answers is authoritative here — a watched pane missing
@@ -623,9 +623,9 @@ fn watch_snapshot_rejects_a_socket_with_the_wrong_protocol() {
 
 #[test]
 fn watch_snapshot_accepts_the_pinned_protocol() {
-    let herdr = fake_herdr_socket(17);
+    let herdr = fake_herdr_socket(19);
     HerdrWatchConnector
         .snapshot(&herdr.socket)
-        .expect("protocol 17 must pass the gate");
+        .expect("protocol 19 must pass the gate");
     assert_eq!(herdr.methods(), vec!["ping", "session.snapshot"]);
 }

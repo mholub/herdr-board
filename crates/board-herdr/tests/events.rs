@@ -81,8 +81,8 @@ fn unknown_event_kind_becomes_other() {
 }
 
 #[test]
-fn tolerates_protocol_17_additive_status_fields() {
-    // Additive protocol-17 metadata must not be required by the client model.
+fn tolerates_protocol_19_additive_status_fields() {
+    // Additive protocol-19 metadata must not be required by the client model.
     let line = r#"{"event":"pane_agent_status_changed","data":{"type":"pane_agent_status_changed","pane_id":"p","workspace_id":"w","agent_status":"working","agent":"pi","display_agent":"Pi","title":"Build","state_labels":{"phase":"coding","priority":"high"},"future_field":true}}"#;
     match parse_event_line(line).expect("event") {
         HerdrEvent::AgentStatusChanged {
@@ -143,7 +143,7 @@ fn watch_subscriptions_builds_expected_set() {
 
 #[test]
 fn parses_dotted_event_key_without_data_type() {
-    // Protocol-17 also accepts the dotted event key with no `type` inside
+    // Protocol-19 also accepts the dotted event key with no `type` inside
     // `data`.
     let line = r#"{"data":{"agent":"claude","agent_status":"done","pane_id":"w1:pB","workspace_id":"w1"},"event":"pane.agent_status_changed"}"#;
     match parse_event_line(line).unwrap() {

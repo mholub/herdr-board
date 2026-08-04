@@ -123,6 +123,71 @@ fn create_forms_submit_the_active_board_id() {
 }
 
 #[test]
+fn new_card_form_derives_title_from_description() {
+    let mut form = Form::card_create(1);
+    assert_eq!(form.current_harness(), "codex");
+    assert_eq!(
+        form.fields
+            .iter()
+            .find(|field| field.id == FieldId::Model)
+            .unwrap()
+            .display(),
+        "gpt-5.6-sol"
+    );
+    assert_eq!(
+        form.fields
+            .iter()
+            .find(|field| field.id == FieldId::Effort)
+            .unwrap()
+            .display(),
+        "high"
+    );
+    form.fields
+        .iter_mut()
+        .find(|field| field.id == FieldId::Description)
+        .unwrap()
+        .set_text("  Ship   a usable prototype  \nMore detail");
+    match form.submit().unwrap() {
+        Submit::CardCreate(params) => assert_eq!(params.title, "Ship a usable prototype"),
+        _ => panic!("expected card create"),
+    }
+
+    let empty = match Form::card_create(1).submit() {
+        Err(error) => error,
+        Ok(_) => panic!("empty card content must be rejected"),
+    };
+    assert!(empty.contains("title or description"), "{empty}");
+}
+
+#[test]
+fn new_card_form_prefers_the_invoking_plugin_workspace() {
+    let mut form = Form::card_create_with_origin(1, Some("work"), Some("w-current"));
+    form.apply_options(
+        None,
+        None,
+        Some(vec![
+            SpaceInfo {
+                id: "w-other".into(),
+                label: "Other".into(),
+            },
+            SpaceInfo {
+                id: "w-current".into(),
+                label: "Current".into(),
+            },
+        ]),
+        None,
+    );
+    assert_eq!(
+        form.fields
+            .iter()
+            .find(|field| field.id == FieldId::SpaceRef)
+            .unwrap()
+            .display(),
+        "Current (w-current)"
+    );
+}
+
+#[test]
 fn form_field_cycling_wraps_and_skips_hidden() {
     let mut app = super::helpers::demo_app();
     update(&mut app, key(KeyCode::Char('n'))); // open new-card form
@@ -185,10 +250,11 @@ fn choice_cycling_wraps() {
         .iter()
         .position(|f| f.id == FieldId::Effort)
         .unwrap();
-    // Fallback effort menu (no catalog yet): (default)/low/medium/high/xhigh/max.
+    // Codex fallback effort menu: (default)/low/medium/high/xhigh.
     // Cycle back one from 0 -> last.
+    set_choice(&mut form, FieldId::Effort, "(default)");
     form.fields[eff_idx].cycle(-1);
-    assert_eq!(form.fields[eff_idx].display(), "max");
+    assert_eq!(form.fields[eff_idx].display(), "xhigh");
     form.fields[eff_idx].cycle(1);
     assert_eq!(form.fields[eff_idx].display(), "(default)");
 }
@@ -196,13 +262,16 @@ fn choice_cycling_wraps() {
 // -- Feature 1: guided card-form selectors -----------------------------------
 
 #[test]
-fn new_card_defaults_to_pi_and_lists_both_builtins() {
+fn new_card_defaults_to_codex_and_lists_all_builtins() {
     let mut d = driver_of(demo_client().unwrap());
     d.handle(key(KeyCode::Char('n')));
     let form = d.app.form.as_ref().unwrap();
-    assert_eq!(form.current_harness(), "pi");
-    assert_eq!(opt_labels(form, FieldId::Harness), vec!["pi", "claude"]);
-    assert_eq!(form.caps.as_ref().unwrap().harness, "pi");
+    assert_eq!(form.current_harness(), "codex");
+    assert_eq!(
+        opt_labels(form, FieldId::Harness),
+        vec!["codex", "claude", "pi"]
+    );
+    assert_eq!(form.caps.as_ref().unwrap().harness, "codex");
 }
 
 #[test]
@@ -217,17 +286,17 @@ fn opening_column_form_loads_only_column_metadata() {
     d.handle(key(KeyCode::Char('N')));
     let form = d.app.form.as_ref().unwrap();
     assert_eq!(d.app.screen, Screen::ColumnForm);
-    assert_eq!(form.caps.as_ref().unwrap().harness, "pi");
+    assert_eq!(form.caps.as_ref().unwrap().harness, "codex");
     assert_eq!(
         opt_labels(form, FieldId::HarnessOverride),
-        vec!["none", "pi", "claude"]
+        vec!["none", "codex", "claude", "pi"]
     );
     assert!(form.spaces.is_empty(), "column forms do not load spaces");
     assert!(
         form.sessions.is_empty(),
         "column forms do not load sessions"
     );
-    assert!(!form
+    assert!(form
         .fields
         .iter()
         .any(|field| field.id == FieldId::PermissionOverride
@@ -242,7 +311,7 @@ fn opening_column_form_loads_only_column_metadata() {
     calls.lock().unwrap().clear();
     d.handle(key(KeyCode::Char('E')));
     let form = d.app.form.as_ref().unwrap();
-    assert_eq!(form.caps.as_ref().unwrap().harness, "pi");
+    assert_eq!(form.caps.as_ref().unwrap().harness, "codex");
     assert_eq!(form.fields[form.focus].id, FieldId::Name);
     assert_eq!(
         *calls.lock().unwrap(),
@@ -282,6 +351,8 @@ fn fetch_failure_falls_back_to_free_text() {
 #[test]
 fn pi_form_defaults_model_hides_permission_and_offers_low() {
     let mut form = Form::card_create(1);
+    set_choice(&mut form, FieldId::Harness, "pi");
+    form.on_harness_changed();
     form.apply_options(Some(pi_capabilities()), None, Some(vec![]), None);
     assert_eq!(
         opt_labels(&form, FieldId::Model),
@@ -373,6 +444,8 @@ fn switching_from_claude_to_pi_resets_only_permission() {
 #[test]
 fn switching_from_pi_to_claude_resets_incompatible_effort() {
     let mut form = Form::card_create(1);
+    set_choice(&mut form, FieldId::Harness, "pi");
+    form.on_harness_changed();
     form.apply_options(Some(pi_capabilities()), None, Some(vec![]), None);
     set_choice(&mut form, FieldId::Effort, "off");
     set_choice(&mut form, FieldId::Harness, "claude");
@@ -390,6 +463,8 @@ fn switching_from_pi_to_claude_resets_incompatible_effort() {
 #[test]
 fn pi_submit_carries_custom_model_low_and_no_permission() {
     let mut form = Form::card_create(7);
+    set_choice(&mut form, FieldId::Harness, "pi");
+    form.on_harness_changed();
     form.apply_options(Some(pi_capabilities()), None, Some(vec![]), None);
     form.fields[0].set_text("pi task");
     set_choice(&mut form, FieldId::Model, "(custom)");

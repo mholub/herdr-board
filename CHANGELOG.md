@@ -7,6 +7,7 @@ All notable changes to this project are documented here. The format is based on
 ## [Unreleased]
 
 - Add managed Codex launch/resume/fork support with detected conversation-id persistence, plus a configurable default template and a `plan-review` workflow with manual plan approval, manual product testing, optional polish, and two-reviewer AI review.
+- Require Herdr 0.8.0 / protocol 19; allow description-only card creation with bounded generated titles; and default new cards to Codex `gpt-5.6-sol` at `high` reasoning in the invoking plugin workspace.
 
 ## [0.10.0] - 2026-07-30
 

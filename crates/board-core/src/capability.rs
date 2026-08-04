@@ -362,8 +362,8 @@ pub fn meta_for(harness: &str, config: &Config) -> Option<Box<dyn HarnessMeta>> 
     }
 }
 
-/// Every harness the daemon knows about: built-ins (`pi`, `claude`, `codex`) in their
-/// declared/default order (pi is the card default, so it stays first) followed
+/// Every harness the daemon knows about: built-ins (`codex`, `claude`, `pi`) in their
+/// declared/default order (Codex is the card default, so it stays first) followed
 /// by every config-defined `[harness.NAME]` sorted, de-duplicated. This is the
 /// single source for the `harness.list` RPC and BOTH the card `harness` and
 /// column `harness_override` selects in the TUI, so every harness menu shares

@@ -45,7 +45,11 @@ pub(super) fn form_key(app: &mut App, k: KeyEvent) -> Vec<Effect> {
                     // harness-override needs its own capabilities; model/space-
                     // kind changes reshape the dependent selectors in place.
                     match fid {
-                        FieldId::Harness | FieldId::Session | FieldId::HarnessOverride => {
+                        FieldId::Harness => {
+                            form.on_harness_changed();
+                            return vec![Effect::LoadFormOptions];
+                        }
+                        FieldId::Session | FieldId::HarnessOverride => {
                             return vec![Effect::LoadFormOptions]
                         }
                         FieldId::Model => form.on_model_changed(),

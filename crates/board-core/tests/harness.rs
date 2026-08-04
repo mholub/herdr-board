@@ -4,7 +4,8 @@ use board_core::capability::ResumeSupport;
 use board_core::config::{Config, HarnessDef};
 use board_core::harness::{
     build_invocation, claude_argv, is_builtin_harness, pi_argv, plan_session, resume_invocation,
-    session_argv, HarnessError, SessionPlan, BOARD_PROTOCOL_TRAILER, DEFAULT_HARNESS,
+    session_argv, HarnessError, SessionPlan, BOARD_PROTOCOL_TRAILER, DEFAULT_CODEX_EFFORT,
+    DEFAULT_CODEX_MODEL, DEFAULT_HARNESS,
 };
 use board_core::launch::ExecutionSpec;
 use board_core::prompt::EffectiveSettings;
@@ -47,8 +48,10 @@ fn codex_settings() -> EffectiveSettings {
 }
 
 #[test]
-fn builtin_registry_is_pi_first() {
-    assert_eq!(DEFAULT_HARNESS, "pi");
+fn builtin_registry_defaults_to_codex_56_sol_high() {
+    assert_eq!(DEFAULT_HARNESS, "codex");
+    assert_eq!(DEFAULT_CODEX_MODEL, "gpt-5.6-sol");
+    assert_eq!(DEFAULT_CODEX_EFFORT, Effort::High);
     assert!(is_builtin_harness("pi"));
     assert!(is_builtin_harness("claude"));
     assert!(is_builtin_harness("codex"));
@@ -624,7 +627,7 @@ fn resume_invocation_refuses_a_legacy_all_in_one_command_line() {
             .unwrap_err(),
         HarnessError::ResumeLegacyArgv("claude".into())
     );
-    // The protocol-17 form `build_invocation` actually persists is accepted.
+    // The protocol-19 form `build_invocation` actually persists is accepted.
     let managed = build_invocation(
         "claude",
         &Config::default(),

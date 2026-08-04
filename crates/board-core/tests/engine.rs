@@ -3,12 +3,35 @@
 use board_core::config::{Config, HarnessDef};
 use board_core::engine::{
     decide_auto_hop, decide_entry, decide_lifecycle, decide_resumability, decide_signal,
-    decide_transition, format_duration, resolve_column, run_elapsed, validate_card_archive,
-    validate_card_edit, validate_card_space, validate_column_delete,
+    decide_transition, format_duration, resolve_card_title, resolve_column, run_elapsed,
+    validate_card_archive, validate_card_edit, validate_card_space, validate_column_delete,
     validate_column_permission_override, AgentSignal, AutoHopDecision, FinalizePlan,
     LifecycleAction, LifecycleDecision, LifecycleFacts, LifecycleHarness, LifecycleRejection,
     ResumabilityDecision, SignalDecision, ValidationError,
 };
+
+#[test]
+fn empty_card_title_is_derived_from_the_first_nonempty_description_line() {
+    assert_eq!(
+        resolve_card_title("  ", Some("\n  Add   retry support  \nMore detail here.")),
+        Ok("Add retry support".to_string())
+    );
+    assert_eq!(
+        resolve_card_title(" Explicit title ", Some("ignored")),
+        Ok("Explicit title".to_string())
+    );
+}
+
+#[test]
+fn generated_card_title_is_bounded_and_requires_some_content() {
+    let title = resolve_card_title("", Some(&"é".repeat(100))).unwrap();
+    assert_eq!(title.chars().count(), 80);
+    assert!(title.ends_with('…'));
+    assert_eq!(
+        resolve_card_title(" \t", Some("\n  \t")),
+        Err(ValidationError::CardContentEmpty)
+    );
+}
 use board_core::engine::{
     merge_card_update, merge_column_update, validate_card_settings, validate_column_settings,
     validate_column_update, validate_effective_settings, PermissionContext,

@@ -3,6 +3,7 @@
 //! terminal sizes, and running-card timers pinned by rewriting the active-run
 //! summary start time.
 
+use board_core::capability::pi_capabilities;
 use board_core::client::{BoardClient, FakeBoardClient};
 use board_core::db::{EnqueueRun, FinalizeRun};
 use board_core::protocol::parse_timestamp;
@@ -149,6 +150,15 @@ fn new_card_modal_pi_custom_model_low() {
     let mut d = driver(demo_client().unwrap());
     key(&mut d, KeyCode::Char('n'));
     let form = d.app.form.as_mut().unwrap();
+    let harness = form
+        .fields
+        .iter_mut()
+        .find(|field| field.id == FieldId::Harness)
+        .unwrap();
+    if let FieldKind::Choice { opts, idx } = &mut harness.kind {
+        *idx = opts.iter().position(|opt| opt.label == "pi").unwrap();
+    }
+    form.apply_options(Some(pi_capabilities()), None, None, None);
     let model = form
         .fields
         .iter_mut()

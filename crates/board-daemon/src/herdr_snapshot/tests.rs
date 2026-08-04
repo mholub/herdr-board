@@ -21,7 +21,7 @@ fn make_pane(pane_id: &str, agent_status: AgentStatus) -> PaneInfo {
 fn empty_snapshot() -> SessionSnapshot {
     SessionSnapshot {
         version: "1".into(),
-        protocol: 17,
+        protocol: 19,
         workspaces: vec![],
         tabs: vec![],
         panes: vec![],

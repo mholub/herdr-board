@@ -6,7 +6,7 @@ The current contract is the typed code plus [`docs/README.md`](README.md), `docs
 
 Condensed output of three research passes: local herdr introspection, prior art, and technical building blocks.
 
-## A. herdr capability map (v0.7.5, protocol 17, verified locally)
+## A. herdr capability map (v0.8.0, protocol 19, verified locally)
 
 JSON request/response + events use the Unix socket at
 `~/.config/herdr/herdr.sock` (or `HERDR_SOCKET_PATH` for a named session).
@@ -14,16 +14,16 @@ The captured `herdr api schema --json` contains 89 request methods and 26 event
 subscription selectors. `herdr api snapshot` exposes live
 workspaces/tabs/panes/agents. IDs remain shaped like `w3`, `w3:t1`, `w3:p1`.
 
-| Need | Herdr 0.7.5 command / protocol-17 API |
+| Need | Herdr 0.8.0 command / protocol-19 API |
 |---|---|
 | Create workspace | `herdr workspace create --cwd PATH --label TEXT --env K=V --no-focus` |
 | Worktree per card | `herdr worktree create --workspace ID\|--cwd PATH --branch NAME --base REF --json` (+ open/remove/list) |
 | Place a pane first | Use `tab.create` or `pane.split {workspace_id, target_pane_id, cwd, env, direction, focus}`. Placement, cwd, and environment are established before managed launch. |
-| Start a managed agent | `herdr agent start NAME --kind KIND --pane ID [--timeout MS] -- [AGENT_ARG…]`; socket `agent.start` is `{name, kind, pane_id, args, timeout_ms}`. `kind` chooses the canonical executable; `args` excludes it. The protocol-16 workspace/tab/split/env start fields are gone. |
+| Start a managed agent | `herdr agent start NAME --kind KIND --pane ID [--timeout MS] -- [AGENT_ARG…]`; socket `agent.start` is `{name, kind, pane_id, args, timeout_ms}`. `kind` chooses the canonical executable; `args` excludes it. The protocol-17 workspace/tab/split/env start fields are gone. |
 | Inspect readiness | `herdr agent get TARGET` / `agent.get {target}` returns `interactive_ready` and `launch_pending`; readiness is `interactive_ready=true && launch_pending=false`. `agent.wait` waits for agent status, not this startup predicate. |
 | Submit a card task | `herdr agent prompt TARGET TEXT`; `agent.prompt {target,text,wait?}` preserves multiline text and optionally waits for status. No keystroke/Enter pair is needed. |
 | Read output | `herdr agent read TARGET --source recent-unwrapped --lines N` / `agent.read` reads terminal screen/scrollback, not a semantic result. |
-| Run an unmanaged command | `herdr pane run PANE_ID COMMAND…` exists only as a CLI boundary: protocol 17 exposes no `pane.run` socket method. It schedules the command, so herdr-board uses a temporary self-cleaning runner and a board callback for silent child exit. |
+| Run an unmanaged command | `herdr pane run PANE_ID COMMAND…` exists only as a CLI boundary: protocol 19 exposes no `pane.run` socket method. It schedules the command, so herdr-board uses a temporary self-cleaning runner and a board callback for silent child exit. |
 | Event stream | `events.subscribe` is a persistent raw-socket connection. Subscriptions use dotted names; emitted envelopes may use underscore `data.type` names or a dotted top-level `event` with no `data.type`. See exact shapes below. |
 | Notify human | `herdr notification show TITLE --body … --sound none\|done\|request` |
 | Integration input | `herdr pane report-agent PANE --source ID --agent LABEL --state idle\|working\|blocked\|unknown [--seq N]`; `done` is an output status, not an accepted report input. |
@@ -36,7 +36,7 @@ concrete existing pane. Emitted status data requires
 `pane.exited`/`pane.closed`; their emitted data carries `pane_id` and
 `workspace_id`. The client accepts both
 `{"event":"pane_agent_status_changed","data":{"type":"pane_agent_status_changed","pane_id":"w1:p2","workspace_id":"w1","agent_status":"working","agent":"pi"}}`
-and protocol-17's observed
+and protocol-19's observed
 `{"event":"pane.agent_status_changed","data":{"pane_id":"w1:p2","workspace_id":"w1","agent_status":"working","agent":"pi"}}`
 form.
 
@@ -73,7 +73,7 @@ More in the space: Cline kanban, Fusion, Nimbalyst, Crystal, Conductor, Omnara �
 ## C. Harness CLI capabilities (verified locally, 2026-07-17)
 
 The flags below describe direct/local CLI capabilities and historical adapter research; they are
-**not** the shipped managed-launch transport. Under Herdr 0.7.5/protocol 17, herdr-board creates a
+**not** the shipped managed-launch transport. Under Herdr 0.8.0/protocol 19, herdr-board creates a
 pane first, starts the explicit agent kind with prompt-free startup args, supplies the system prompt
 through a temporary `0600` file, waits for `interactive_ready`, and sends the card prompt only via
 `agent.prompt`.

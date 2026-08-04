@@ -4,7 +4,7 @@ The install steps the [root README](../README.md) summarizes, plus everything op
 them: a custom CLI directory, a Herdr keybinding, the harness integration, the agent skill, and
 named Herdr sessions.
 
-Requires exactly **Herdr 0.7.5 (protocol 17)**, Git, and a Rust toolchain with `cargo`; Linux and
+Requires exactly **Herdr 0.8.0 (protocol 19)**, Git, and a Rust toolchain with `cargo`; Linux and
 macOS are supported. See the README for the one-line install command itself.
 
 ## Installation details and a custom CLI directory

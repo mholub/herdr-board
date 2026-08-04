@@ -16,7 +16,8 @@ CLI, cards, runs, comments, columns, and Herdr-backed spaces; it does not prescr
 prototype, test, or release herdr-board itself.
 
 A **card** is a title/description plus harness/model/effort, optional harness permission, and a target
-Herdr session and workspace. New cards default to Pi. **Columns** are pipeline stages: `manual` waits
+Herdr session and workspace. New cards default to Codex `gpt-5.6-sol` with `high` reasoning.
+**Columns** are pipeline stages: `manual` waits
 for a person and `auto` dispatches a visible agent run on entry. Each canonical Git root (or exact
 non-Git CWD) has an independent board; the preserved `Global` board remains available. Agents report
 through `board`; never edit the database. The daemon owns state and column transitions.
@@ -100,7 +101,7 @@ resume the latest conversation, and AI Review starts fresh for reviewer independ
 ### Cards
 
 ```bash
-board card create --title TITLE [-d DESCRIPTION] [--column COLUMN] \
+board card create [--title TITLE] [-d DESCRIPTION] [--column COLUMN] \
   [--harness HARNESS] [--model MODEL] [--effort EFFORT] [--permission MODE] \
   [--session SESSION] [--space-kind workspace|new-workspace] \
   [--space-ref REF] [--space-cwd DIR] [--json]
@@ -116,8 +117,11 @@ board card restore ID [--json]
 board card delete ID [--yes] [--json]
 ```
 
-`card new` is retained as an alias for `card create`. A new card defaults to Pi; an omitted model or
-effort uses the harness default. `new-workspace` requires both `--space-ref` and `--space-cwd`.
+`card new` is retained as an alias for `card create`. Title is optional: when it is blank or omitted,
+the board uses the first non-empty description line, collapses whitespace, and limits the generated
+title to 80 characters. Both title and description cannot be blank. A new card defaults to Codex
+`gpt-5.6-sol` at `high` reasoning; an explicit non-Codex harness retains that harness's model and
+effort defaults. `new-workspace` requires both `--space-ref` and `--space-cwd`.
 Creating directly in an `auto` column dispatches immediately. `card list` defaults to active cards;
 `all` includes archived cards and `archived` returns only archived cards. `card show` includes current
 comments and run history; soft-deleted comments are omitted.
@@ -211,7 +215,7 @@ board space list [--session SESSION] [--json]
 board session list [--json]
 ```
 
-`HARNESS` is a positional and defaults to `pi`; `harness efforts` additionally **requires**
+`HARNESS` is a positional and defaults to `codex`; `harness efforts` additionally **requires**
 `--model`. Column references accept an id or case-insensitive name. List and reorder return ordered
 arrays; create/show/edit return a column. `--fresh-session` and `--reuse-session` conflict at
 **parse time** — passing both is a usage error (exit 64), not a runtime rejection.

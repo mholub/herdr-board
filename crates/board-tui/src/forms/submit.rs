@@ -1,7 +1,7 @@
 //! Submit conversion and value extraction helpers.
 
 use board_core::engine::{
-    validate_card_space, validate_column_permission_override, ValidationError,
+    resolve_card_title, validate_card_space, validate_column_permission_override, ValidationError,
 };
 use board_core::protocol::{
     CardCreateParams, CardUpdateParams, ColumnCreateParams, ColumnUpdateParams, Effort, Patch,
@@ -29,14 +29,13 @@ impl Form {
         self.preflight().map_err(err)?;
         match self.kind {
             FormKind::CardCreate { column_id } => {
-                let title = self.trim(FieldId::Title);
-                if title.is_empty() {
-                    return Err("title is required".into());
-                }
+                let description = self.opt_text(FieldId::Description);
+                let title = resolve_card_title(&self.trim(FieldId::Title), description.as_deref())
+                    .map_err(err)?;
                 Ok(Submit::CardCreate(CardCreateParams {
                     title,
                     board_id: None,
-                    description: self.opt_text(FieldId::Description),
+                    description,
                     column_id: Some(column_id),
                     harness: self.opt_choice_str(FieldId::Harness),
                     model: self.card_model(),

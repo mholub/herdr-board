@@ -8,19 +8,19 @@ pub(crate) enum HarnessCmd {
     List,
     /// List known models and the efforts each accepts.
     Models {
-        #[arg(default_value = "pi")]
+        #[arg(default_value = "codex")]
         harness: String,
     },
     /// Show the efforts a model accepts.
     Efforts {
-        #[arg(default_value = "pi")]
+        #[arg(default_value = "codex")]
         harness: String,
         #[arg(long)]
         model: String,
     },
     /// List permission modes a harness understands.
     Permissions {
-        #[arg(default_value = "pi")]
+        #[arg(default_value = "codex")]
         harness: String,
     },
 }

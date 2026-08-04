@@ -100,7 +100,7 @@ fn new_workspace_selected_socket_preflights_protocol_before_resolution() {
     // mismatched socket must receive exactly ping; workspace.list/create,
     // session.snapshot, and spawner placement must not be reached.
     let herdr = testkit::herdr_server()
-        .version("0.7.4")
+        .version("0.7.5")
         .take(3)
         .on("workspace.list", |req| {
             testkit::reply(
@@ -128,7 +128,7 @@ fn new_workspace_selected_socket_preflights_protocol_before_resolution() {
     let err = result.expect_err("protocol mismatch must stop workspace resolution");
     assert!(err
         .to_string()
-        .contains("Herdr 0.7.5 with protocol 17 is required"));
+        .contains("Herdr 0.8.0 with protocol 19 is required"));
 }
 
 // ---------------------------------------------------------------------------

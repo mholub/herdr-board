@@ -25,7 +25,7 @@ pub(crate) use configured::{configured_script, posix_quote, remove_file_if_exist
 pub(crate) use configured::{launch_configured, HerdrCliPaneRunner, PaneRunner};
 pub(crate) use managed::{launch_managed, DelayFn, DEFAULT_AGENT_START_DELAY};
 
-/// Launches managed agents through protocol-17 `agent.start`, and configured
+/// Launches managed agents through protocol-19 `agent.start`, and configured
 /// harnesses through a board-owned split child plus `herdr pane run`.
 ///
 /// New durable card tabs retain their root as a shell anchor; the anchor is

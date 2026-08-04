@@ -24,12 +24,14 @@ step "Create an auto column 'Execute' (raw protocol — no CLI verb for columns)
 EXEC_ID="$(col_create '{"name":"Execute","trigger":"auto"}')"
 echo "  -> column $EXEC_ID on board $E2E_BOARD_ID"
 
-step "Create a card on the fake harness targeting the workspace"
-card_json="$("$BOARD_BIN" card new --title "E2E CLI Card" \
-  -d "e2e cli card" --harness fake \
+step "Create a card with a description-derived title on the fake harness"
+card_json="$("$BOARD_BIN" card new \
+  -d $'E2E CLI Card\ne2e cli card details' --harness fake \
   --space-kind workspace --space-ref "$WS_ID" --json)"
 echo "  -> $card_json"
 CARD_ID="$(printf '%s' "$card_json" | jget id)" || fail "could not parse card id"
+[ "$(printf '%s' "$card_json" | jget title)" = "E2E CLI Card" ] \
+  || fail "blank title was not derived from the first description line"
 echo "  card: $CARD_ID"
 
 step "Move card into 'Execute' (auto) — this dispatches a real herdr agent pane"
@@ -67,9 +69,11 @@ e2e_launch_tui "$PANE_ID" \
 echo "  waiting for the TUI to come up..."
 sleep 3
 
-step "Drive the new-card form via send-keys (n, type title, Enter)"
+step "Drive the new-card form via send-keys (n, leave title blank, type description, Enter)"
 e2e_herdr_mutate -- pane send-keys "$PANE_ID" n
 sleep 0.5
+e2e_herdr_mutate -- pane send-keys "$PANE_ID" tab
+sleep 0.2
 e2e_herdr_mutate -- pane send-text "$PANE_ID" "E2E TUI Card"
 sleep 0.5
 e2e_herdr_mutate -- pane send-keys "$PANE_ID" enter

@@ -11,6 +11,7 @@ pub struct OriginContext {
     pub session: Option<String>,
     pub plugin_id: Option<String>,
     pub pane_id: Option<String>,
+    pub workspace_id: Option<String>,
 }
 
 impl OriginContext {
@@ -26,6 +27,9 @@ impl OriginContext {
                 .ok()
                 .filter(|value| !value.is_empty()),
             pane_id: std::env::var("HERDR_PANE_ID")
+                .ok()
+                .filter(|value| !value.is_empty()),
+            workspace_id: std::env::var("HERDR_WORKSPACE_ID")
                 .ok()
                 .filter(|value| !value.is_empty()),
         }

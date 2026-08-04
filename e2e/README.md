@@ -34,8 +34,8 @@ the CI live gate after the cheaper static checks succeed.
 | Canonical CLI `card run focus` and card-detail `o` focus one **selected** run of a two-run card: `o` on the older run (whose pane was reclaimed) is refused without closing the overlay, `o` on the newest one focuses its held pane and closes the real plugin overlay | `13-jump-to-pane.sh` | live |
 | A column `harness_override` (TUI select) drives a run via a config-defined harness; `harness.list` advertises config harnesses; effort/permission overrides flow into the run argv | `14-column-config.sh` | live |
 | Integration-style status reports on a live managed pane: blocked → working → end-of-turn idle (Herdr derives `done`) → `awaiting` (`agent_done`), timeout paused; `board done ok` → `done` in the same column | `15-awaiting.sh` | live |
-| Managed protocol-17 Pi + Claude + Codex: pane-first placement, exact system instructions, readiness/session reports (including Codex's post-start id persistence), exact `agent.prompt` task delivery, and held layout | `16-managed-p17.sh` | live, checked-in fake `pi` + `claude` + `codex`, zero provider cost |
-| Unmanaged protocol-17 configured harness: exact argv/multiline env/cwd/socket bridge through CLI-only `pane run`, held layout, explicit completion | `17-configured-p17-runner.sh` | live, temporary runner, zero provider cost |
+| Managed protocol-19 Pi + Claude + Codex: pane-first placement, exact system instructions, readiness/session reports (including Codex's post-start id persistence), exact `agent.prompt` task delivery, and held layout | `16-managed-p19.sh` | live, checked-in fake `pi` + `claude` + `codex`, zero provider cost |
+| Unmanaged protocol-19 configured harness: exact argv/multiline env/cwd/socket bridge through CLI-only `pane run`, held layout, explicit completion | `17-configured-p19-runner.sh` | live, temporary runner, zero provider cost |
 | Nullable omitted/null/value semantics, merged capability validation, atomic rejection, and provider-free dispatch after clears | `18-nullable-clear.sh` | live, zero provider cost |
 | Daemon starts before Herdr; late supervisor connection observes one exact pane exit | `19-daemon-before-herdr.sh` | live, zero provider cost |
 | Proxy outage/restart preserves `Unknown` and timeout budget; reconnect snapshot repairs an event gap once | `20-herdr-recovery.sh` | live, zero provider cost |
@@ -51,7 +51,7 @@ the CI live gate after the cheaper static checks succeed.
 
 ### How the live scenario produces Herdr `done`
 
-Herdr 0.7.5 / protocol 17 exposes `done` as an output `AgentStatus`, but its
+Herdr 0.8.0 / protocol 19 exposes `done` as an output `AgentStatus`, but its
 supported integration input, `pane.report_agent`, accepts only
 `idle|working|blocked|unknown` (`herdr pane report-agent --help` and `herdr api
 schema --json`). Pi integration v6 uses that API with `source=herdr:pi` and
@@ -72,7 +72,7 @@ require the sample because a fast provider response can finish between polls.
 
 ## Prerequisites
 
-- **Exactly Herdr 0.7.5 / socket protocol 17**, `python3`, and Bash ≥4. The provider-free standard suite supports Linux and macOS; `run-all.sh` resolves absolute Herdr and Bash paths before applying its controlled `PATH`. Every scenario checks both `herdr --version` and the ephemeral server's `ping` before dispatch; protocol 16 and unknown/future protocols are rejected. Your real sessions are never
+- **Exactly Herdr 0.8.0 / socket protocol 19**, `python3`, and Bash ≥4. The provider-free standard suite supports Linux and macOS; `run-all.sh` resolves absolute Herdr and Bash paths before applying its controlled `PATH`. Every scenario checks both `herdr --version` and the ephemeral server's `ping` before dispatch; protocol 17 and unknown/future protocols are rejected. Your real sessions are never
   touched — the suite boots its own **ephemeral** Herdr server/session.
 - `cargo` on `PATH` — `run-all.sh` builds the release `board` binary once
   (`scripts/build.sh`); scenarios reuse it.
@@ -146,8 +146,8 @@ Exit codes: scenario `0` = PASS, `3` = SKIP (missing precondition), anything els
 FAIL. `run-all.sh` captures the scenario side of its logging pipeline via `PIPESTATUS[0]` and exits
 non-zero if any scenario failed; `--require-all` also converts SKIP to failure. Per-scenario logs,
 status, exact owned session name, and sanitized manifest events are written below the run artifact root. In CI,
-`e2e/ci.sh` downloads or reuses the exact SHA-verified Herdr 0.7.5 Linux x86_64 asset, verifies
-protocol 17, invokes `run-all.sh --require-all`, and validates the one private artifact root printed
+`e2e/ci.sh` downloads or reuses the exact SHA-verified Herdr 0.8.0 Linux x86_64 asset, verifies
+protocol 19, invokes `run-all.sh --require-all`, and validates the one private artifact root printed
 by that invocation before copying it to the deterministic `e2e-artifacts/` upload directory. Runner
 and scenario evidence is uploaded even on failure and retained for 30 days. The same wrapper is the
 local CI equivalent; it never runs either real-provider smoke. The real-Claude smoke stages only completed onboarding/theme,
@@ -164,8 +164,8 @@ personal Claude state. Its intended contract is one authorized attempt with no r
 | `process_identity.py` | Standard-library platform backend: Linux `/proc`; Darwin `libproc`/`KERN_PROCARGS2`; exact argv/start/executable capture and HMAC verification. |
 | `fake-agent.sh` | Config-defined fake harness used by scenarios 01–10 and 13–15. |
 | `fake-bin/pi` / `fake-bin/claude` / `fake-bin/codex` | Executables exposed only inside disposable standard-E2E Herdr servers/workspaces. They emulate interactive readiness/session reports, require the exact `agent.prompt` bytes before completion, record evidence under isolated temp, and never modify installed tools or call a provider. |
-| `16-managed-p17.sh` | Managed pane-first Pi/Claude protocol-17 launch and no-provider boundary. |
-| `17-configured-p17-runner.sh` | Unmanaged configured-command `pane run` bridge and exact argv/env evidence. |
+| `16-managed-p19.sh` | Managed pane-first Pi/Claude protocol-19 launch and no-provider boundary. |
+| `17-configured-p19-runner.sh` | Unmanaged configured-command `pane run` bridge and exact argv/env evidence. |
 | `18-nullable-clear.sh` | Nullable clearing, merged validation, atomic rejection, and post-clear configured dispatch; no prompt-body logging. |
 | `19-daemon-before-herdr.sh` | Late Herdr availability and exact pane-exit observation. |
 | `20-herdr-recovery.sh` / `herdr-proxy.py` | Controllable owned proxy for conservative outage/restart, dropped-stream recovery, and typed `agent_pane_busy` fault injection. |

@@ -7,7 +7,7 @@
 //! lives here instead: it is compiled once into the library and the test
 //! binaries just call it.
 
-use board_core::capability::{claude_capabilities, pi_capabilities};
+use board_core::capability::{claude_capabilities, codex_capabilities, pi_capabilities};
 use board_core::client::{BoardClient, FakeBoardClient};
 use board_core::db::{EnqueueRun, FinalizeRun};
 use board_core::harness::BUILTIN_HARNESSES;
@@ -110,6 +110,7 @@ pub fn hostile_origin() -> OriginContext {
         session: Some("hostile-session".into()),
         plugin_id: Some("hostile-plugin-sentinel".into()),
         pane_id: Some("hostile-pane-sentinel".into()),
+        workspace_id: Some("hostile-workspace-sentinel".into()),
     }
 }
 
@@ -227,6 +228,7 @@ impl BoardClient for DemoClient {
                 match params.get("harness").and_then(Value::as_str) {
                     Some("pi") => Ok(json!(pi_capabilities())),
                     Some("claude") => Ok(json!(claude_capabilities())),
+                    Some("codex") => Ok(json!(codex_capabilities())),
                     Some(other) => anyhow::bail!("unknown harness: {other}"),
                     None => anyhow::bail!("missing harness"),
                 }

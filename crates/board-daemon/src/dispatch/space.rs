@@ -42,7 +42,7 @@ pub(crate) fn resolve_space(
                 .ok_or_else(|| anyhow::anyhow!("new_workspace space requires space_cwd"))?;
             match find_workspace_by_label(&workspaces, label) {
                 // A reused workspace must use a cwd from one of its live
-                // panes. Protocol 17 does not inherit workspace cwd, so the
+                // panes. Protocol 19 does not inherit workspace cwd, so the
                 // card's original create cwd is not a safe fallback here.
                 Some(id) => {
                     let live = workspace_cwd(client, &id)?;
@@ -66,7 +66,7 @@ pub(crate) fn resolve_space(
 
 /// Look up a workspace's cwd via one of its live panes in the session snapshot.
 ///
-/// Protocol 17 placement is pane-first and never inherits a workspace cwd, so
+/// Protocol 19 placement is pane-first and never inherits a workspace cwd, so
 /// failure to read this value must stop dispatch rather than launch from an
 /// implicit daemon/Herdr fallback directory.
 pub(crate) fn workspace_cwd(

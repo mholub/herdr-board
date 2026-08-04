@@ -9,10 +9,10 @@ rm -rf "$EXPORT_DIR"
 mkdir -m 700 "$EXPORT_DIR"
 exec > >(tee "$EXPORT_DIR/runner.log") 2>&1
 
-HERDR_VERSION=0.7.5
-HERDR_PROTOCOL=17
-HERDR_URL=https://github.com/herdrdev/herdr/releases/download/v0.7.5/herdr-linux-x86_64
-HERDR_SHA256=3dc83288073e4c2d3c679a30e7be97bcca9141c6fd17dbbb9219142e95c59253
+HERDR_VERSION=0.8.0
+HERDR_PROTOCOL=19
+HERDR_URL=https://github.com/herdrdev/herdr/releases/download/v0.8.0/herdr-linux-x86_64
+HERDR_SHA256=b872ea7e40fa2cb17e857ac9b62b1bf26db7b403c622f5d2f3f5b35f6e9acd28
 CACHE_DIR="${HERDR_CACHE_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/herdr-board/herdr-$HERDR_VERSION-linux-x86_64}"
 HERDR_BIN="$CACHE_DIR/herdr"
 mkdir -p "$CACHE_DIR"
@@ -48,7 +48,7 @@ actual_version="$("$HERDR_BIN" --version)"
   exit 1
 }
 "$HERDR_BIN" api schema --json | python3 -c \
-  'import json,sys; p=json.load(sys.stdin).get("protocol"); print(f"Herdr socket protocol: {p}"); raise SystemExit(p != 17)'
+  'import json,sys; p=json.load(sys.stdin).get("protocol"); print(f"Herdr socket protocol: {p}"); raise SystemExit(p != 19)'
 echo "Pinned Herdr SHA-256: $HERDR_SHA256"
 
 export HERDR_BIN_PATH="$HERDR_BIN"

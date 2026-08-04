@@ -118,58 +118,58 @@ fn reply_for(req: &Value, result_json: &str) -> Action {
 }
 
 #[test]
-fn protocol_gate_accepts_only_protocol_17() {
+fn protocol_gate_accepts_only_protocol_19() {
     let path = serve_calls(|req| {
         assert_eq!(req["method"], "ping");
         reply_for(
             req,
-            r#"{"type":"pong","version":"0.7.5","protocol":17,"capabilities":{}}"#,
+            r#"{"type":"pong","version":"0.8.0","protocol":19,"capabilities":{}}"#,
         )
     });
 
     let mut c = HerdrClient::connect(&path).unwrap();
     let pong = c
-        .require_protocol(17)
-        .expect("protocol 17 must be accepted");
-    assert_eq!(pong.protocol, 17);
+        .require_protocol(19)
+        .expect("protocol 19 must be accepted");
+    assert_eq!(pong.protocol, 19);
 }
 
 #[test]
-fn protocol_gate_rejects_herdr_074_even_with_protocol_17() {
+fn protocol_gate_rejects_herdr_075_even_with_protocol_19() {
     let path = serve_calls(|req| {
         reply_for(
             req,
-            r#"{"type":"pong","version":"0.7.4","protocol":17,"capabilities":{}}"#,
+            r#"{"type":"pong","version":"0.7.5","protocol":19,"capabilities":{}}"#,
         )
     });
 
     let mut c = HerdrClient::connect(&path).unwrap();
     let err = c
-        .require_protocol(17)
+        .require_protocol(19)
         .expect_err("wrong Herdr version must be rejected");
     let text = err.to_string();
     assert!(
-        text.contains("Herdr 0.7.5 with protocol 17 is required"),
+        text.contains("Herdr 0.8.0 with protocol 19 is required"),
         "{text}"
     );
 }
 
 #[test]
-fn protocol_gate_rejects_v16_with_herdr_075_message() {
+fn protocol_gate_rejects_protocol_17_with_herdr_080_message() {
     let path = serve_calls(|req| {
         reply_for(
             req,
-            r#"{"type":"pong","version":"0.7.4","protocol":16,"capabilities":{}}"#,
+            r#"{"type":"pong","version":"0.8.0","protocol":17,"capabilities":{}}"#,
         )
     });
 
     let mut c = HerdrClient::connect(&path).unwrap();
     let err = c
-        .require_protocol(17)
-        .expect_err("protocol 16 must be rejected");
+        .require_protocol(19)
+        .expect_err("protocol 17 must be rejected");
     let text = err.to_string();
-    assert!(text.contains("protocol 17"), "{text}");
-    assert!(text.contains("0.7.5"), "{text}");
+    assert!(text.contains("protocol 19"), "{text}");
+    assert!(text.contains("0.8.0"), "{text}");
 }
 
 #[test]
@@ -182,7 +182,7 @@ fn protocol_gate_rejects_unknown_future_protocol() {
     });
 
     let mut c = HerdrClient::connect(&path).unwrap();
-    assert!(c.require_protocol(17).is_err());
+    assert!(c.require_protocol(19).is_err());
 }
 
 #[test]
@@ -190,7 +190,7 @@ fn call_happy_path_ping_and_workspace_list() {
     let path = serve_calls(|req| match req["method"].as_str().unwrap() {
         "ping" => reply_for(
             req,
-            r#"{"type":"pong","version":"9.9.9","protocol":17,"capabilities":{}}"#,
+            r#"{"type":"pong","version":"9.9.9","protocol":19,"capabilities":{}}"#,
         ),
         "workspace.list" => reply_for(
             req,
@@ -214,7 +214,7 @@ fn is_live_true_on_pong() {
     let path = serve_calls(|req| {
         reply_for(
             req,
-            r#"{"type":"pong","version":"0.7.5","protocol":17,"capabilities":{}}"#,
+            r#"{"type":"pong","version":"0.8.0","protocol":19,"capabilities":{}}"#,
         )
     });
     let mut c = HerdrClient::connect(&path).unwrap();
@@ -247,7 +247,7 @@ fn typed_result_extraction_workspace_create() {
 
 #[test]
 fn tab_list_parses_live_payload() {
-    // Captured from the protocol-17 herdr socket (`tab.list`).
+    // Captured from the protocol-19 herdr socket (`tab.list`).
     let path = serve_calls(|req| {
         assert_eq!(req["method"], "tab.list");
         // `None` workspace is sent explicitly as null.
@@ -270,7 +270,7 @@ fn tab_list_parses_live_payload() {
 }
 
 #[test]
-fn agent_start_uses_protocol_17_startup_args() {
+fn agent_start_uses_protocol_19_startup_args() {
     let path = serve_calls(|req| {
         assert_eq!(req["method"], "agent.start");
         assert_eq!(
@@ -279,13 +279,13 @@ fn agent_start_uses_protocol_17_startup_args() {
                 "name": "card-42-execute",
                 "kind": "pi",
                 "pane_id": "w1:p2",
-                "args": ["--thinking", "low", "--session-id", "p17-session"],
+                "args": ["--thinking", "low", "--session-id", "p19-session"],
                 "timeout_ms": 15000,
             })
         );
         reply_for(
             req,
-            r#"{"type":"agent_started","agent":{"agent":"pi","agent_status":"idle","cwd":"/tmp/card","focused":false,"foreground_cwd":"/tmp/card","interactive_ready":true,"name":"card-42-execute","pane_id":"w1:p2","revision":1,"screen_detection_skipped":true,"state_change_seq":1,"tab_id":"w1:t1","terminal_id":"term-2","terminal_title":"π - workspace","terminal_title_stripped":"π - workspace","workspace_id":"w1"},"argv":["pi","--thinking","low","--session-id","p17-session"]}"#,
+            r#"{"type":"agent_started","agent":{"agent":"pi","agent_status":"idle","cwd":"/tmp/card","focused":false,"foreground_cwd":"/tmp/card","interactive_ready":true,"name":"card-42-execute","pane_id":"w1:p2","revision":1,"screen_detection_skipped":true,"state_change_seq":1,"tab_id":"w1:t1","terminal_id":"term-2","terminal_title":"π - workspace","terminal_title_stripped":"π - workspace","workspace_id":"w1"},"argv":["pi","--thinking","low","--session-id","p19-session"]}"#,
         )
     });
 
@@ -298,7 +298,7 @@ fn agent_start_uses_protocol_17_startup_args() {
             "--thinking".into(),
             "low".into(),
             "--session-id".into(),
-            "p17-session".into(),
+            "p19-session".into(),
         ],
         timeout_ms: Some(15000),
     })
@@ -407,7 +407,7 @@ fn pane_rename_serializes_typed_params_and_parses_pane_info() {
 
 #[test]
 fn pane_get_decodes_pane_info_and_maps_a_dead_pane_to_none() {
-    // Envelope captured from Herdr 0.7.5 / protocol 17 (`pane.get`): params are
+    // Envelope captured from Herdr 0.8.0 / protocol 19 (`pane.get`): params are
     // `PaneTarget {pane_id}`, success is `{"type":"pane_info","pane":…}`.
     let path = serve_calls(|req| {
         assert_eq!(req["method"], "pane.get");
@@ -467,7 +467,7 @@ fn pane_focus_returns_pane_info() {
 
 #[test]
 fn pane_layout_parses_live_payload() {
-    // Captured verbatim from the protocol-17 herdr socket (`pane.layout`, focused tab).
+    // Captured verbatim from the protocol-19 herdr socket (`pane.layout`, focused tab).
     let path = serve_calls(|req| {
         assert_eq!(req["method"], "pane.layout");
         reply_for(

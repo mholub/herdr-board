@@ -44,9 +44,9 @@ class LiveE2ECIContractTests(unittest.TestCase):
     def test_workflow_caches_exact_pinned_binary_without_credentials(self) -> None:
         job = self.workflow.split("  live-e2e:", 1)[1]
         self.assertIn("uses: actions/cache@v4", job)
-        self.assertIn("0.7.5", job)
+        self.assertIn("0.8.0", job)
         self.assertIn("x86_64", job)
-        self.assertIn("3dc83288073e4c2d3c679a30e7be97bcca9141c6fd17dbbb9219142e95c59253", job)
+        self.assertIn("b872ea7e40fa2cb17e857ac9b62b1bf26db7b403c622f5d2f3f5b35f6e9acd28", job)
         for forbidden in ("HERDR_API_KEY", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "E2E_REAL_PI"):
             self.assertNotIn(forbidden, job)
 
@@ -54,12 +54,12 @@ class LiveE2ECIContractTests(unittest.TestCase):
         self.assertTrue(self.wrapper_path.is_file())
         self.assertIn("set -euo pipefail", self.wrapper)
         self.assertIn("umask 077", self.wrapper)
-        self.assertIn("https://github.com/herdrdev/herdr/releases/download/v0.7.5/herdr-linux-x86_64", self.wrapper)
-        self.assertIn("3dc83288073e4c2d3c679a30e7be97bcca9141c6fd17dbbb9219142e95c59253", self.wrapper)
+        self.assertIn("https://github.com/herdrdev/herdr/releases/download/v0.8.0/herdr-linux-x86_64", self.wrapper)
+        self.assertIn("b872ea7e40fa2cb17e857ac9b62b1bf26db7b403c622f5d2f3f5b35f6e9acd28", self.wrapper)
         self.assertIn('"$HERDR_BIN" --version', self.wrapper)
-        self.assertIn("HERDR_VERSION=0.7.5", self.wrapper)
+        self.assertIn("HERDR_VERSION=0.8.0", self.wrapper)
         self.assertIn("protocol", self.wrapper)
-        self.assertIn("17", self.wrapper)
+        self.assertIn("19", self.wrapper)
         self.assertIn('"$REPO_ROOT/e2e/run-all.sh" --require-all', self.wrapper)
 
     def test_wrapper_preserves_private_artifact_ownership_and_suite_status(self) -> None:

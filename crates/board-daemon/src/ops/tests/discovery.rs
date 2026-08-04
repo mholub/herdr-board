@@ -230,7 +230,7 @@ fn run_focus_rescues_a_dead_pane_by_resuming_in_a_new_pane_without_touching_the_
 
 #[test]
 fn run_focus_rescue_gives_the_new_pane_the_board_env_but_never_the_run_credential() {
-    // Protocol-17 placement is pane-first: the run environment arrives on
+    // Protocol-19 placement is pane-first: the run environment arrives on
     // `pane.split`, not `agent.start`. Without it a harness that reads the board
     // env (every checked-in fixture does, under `set -u`) exits immediately.
     let fake = fake_rescue_herdr(RescueFakeFaults::default());
@@ -481,22 +481,26 @@ fn run_focus_rescues_a_configured_harness_that_opts_into_resume() {
     let (card_id, run_id) = add_rescuable_run(&d, "custom", None, Some("conv-1"), true);
 
     // A configured harness is unmanaged, so its launch goes through the
-    // `herdr pane run` bridge rather than `agent.start`; the daemon reaches
-    // the rename+launch step, which is as far as this hermetic fake goes.
-    let err = handle_request(
+    // `herdr pane run` bridge rather than `agent.start`. Unit-test environments
+    // are allowed to omit the Herdr CLI; either way, reaching this boundary
+    // proves the resume opt-in was accepted and placement happened.
+    let result = handle_request(
         &d,
         "run.focus",
         json!({"card_id":card_id,"run_id":run_id,"origin_socket":fake.socket}),
-    )
-    .unwrap_err();
-    // Not a capability refusal: the opt-in was accepted and placement happened.
-    assert_eq!(err.code(), 4, "{err}");
+    );
     assert_eq!(fake.count("pane.split"), 1, "the rescue pane was created");
-    // Failure is non-destructive: the pane it created is closed again. (This
-    // fake cannot emulate the external `herdr pane run` bridge a configured
-    // harness needs, so the launch itself always fails here; what matters is
-    // that the opt-in was honoured and the cleanup ran.)
-    assert!(fake.count("pane.close") >= 1);
+    match result {
+        Ok(focused) => {
+            assert_eq!(focused["action"], "rescued");
+            assert_eq!(focused["harness"], "custom");
+            assert_eq!(fake.count("pane.close"), 0, "successful rescue stays open");
+        }
+        Err(error) => {
+            assert_eq!(error.code(), 4, "{error}");
+            assert!(fake.count("pane.close") >= 1, "failed rescue is cleaned up");
+        }
+    }
 }
 
 #[test]
@@ -584,7 +588,7 @@ fn harness_list_builtin_only() {
     let names: Vec<String> = serde_json::from_value(v["harnesses"].clone()).unwrap();
     assert_eq!(
         names,
-        vec!["pi".to_string(), "claude".to_string(), "codex".to_string()]
+        vec!["codex".to_string(), "claude".to_string(), "pi".to_string()]
     );
 }
 
@@ -601,7 +605,7 @@ fn harness_list_includes_config_defined() {
     let d = test_daemon(config);
     let v = handle_request(&d, "harness.list", json!({})).unwrap();
     let names: Vec<String> = serde_json::from_value(v["harnesses"].clone()).unwrap();
-    assert_eq!(names, vec!["pi", "claude", "codex", "fake"]);
+    assert_eq!(names, vec!["codex", "claude", "pi", "fake"]);
 }
 
 #[test]
@@ -722,7 +726,7 @@ fn space_list_without_herdr_is_herdr_unavailable() {
 
 #[test]
 fn space_list_rejects_a_socket_with_the_wrong_protocol() {
-    let herdr = fake_herdr_with_protocol(16);
+    let herdr = fake_herdr_with_protocol(17);
     // Seed the listing: resolving the default session otherwise shells out to
     // `herdr session list --json`, which makes this assert on whatever herdr is
     // on PATH rather than on the protocol gate — green locally, red in CI.
@@ -742,7 +746,7 @@ fn space_list_rejects_a_socket_with_the_wrong_protocol() {
     assert_eq!(err.code(), 4);
     let msg = err.to_string();
     assert!(
-        msg.contains("Herdr 0.7.5 with protocol 17 is required"),
+        msg.contains("Herdr 0.8.0 with protocol 19 is required"),
         "message: {msg}"
     );
     // The gate is the first and only request: workspace.list never happens.
@@ -751,7 +755,7 @@ fn space_list_rejects_a_socket_with_the_wrong_protocol() {
 
 #[test]
 fn run_focus_rejects_a_socket_with_the_wrong_protocol() {
-    let herdr = fake_herdr_with_protocol(16);
+    let herdr = fake_herdr_with_protocol(17);
     let origin_dir = tempfile::tempdir().unwrap();
     let origin = origin_dir.path().join("origin.sock");
     std::os::unix::fs::symlink(&herdr.socket, &origin).unwrap();
@@ -769,7 +773,7 @@ fn run_focus_rejects_a_socket_with_the_wrong_protocol() {
     assert_eq!(err.code(), 4);
     let msg = err.to_string();
     assert!(
-        msg.contains("Herdr 0.7.5 with protocol 17 is required"),
+        msg.contains("Herdr 0.8.0 with protocol 19 is required"),
         "message: {msg}"
     );
     // The liveness probe for the recorded pane must not reach an incompatible

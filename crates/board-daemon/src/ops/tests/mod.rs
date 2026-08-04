@@ -114,7 +114,7 @@ fn fake_herdr_inner(focus_reply: &'static str, pane_exists: bool, protocol: u32)
 }
 
 // ---------------------------------------------------------------------------
-// Rescue fixture: a small stateful protocol-17 Herdr for `run.focus` rescues
+// Rescue fixture: a small stateful protocol-19 Herdr for `run.focus` rescues
 // ---------------------------------------------------------------------------
 
 /// Create a card plus one *finished* run that recorded a dead pane, a live
@@ -246,7 +246,7 @@ impl RescueFake {
     }
 
     /// The env of the last `pane.split`, i.e. what the rescued pane received.
-    /// Protocol-17 placement is pane-first, so the run environment arrives on
+    /// Protocol-19 placement is pane-first, so the run environment arrives on
     /// `pane.split`, NOT on `agent.start`.
     fn last_split_env(&self) -> BTreeMap<String, String> {
         let splits = self.herdr.requests_for("pane.split");
@@ -255,7 +255,7 @@ impl RescueFake {
     }
 }
 
-/// A stateful protocol-17 Herdr covering the rescue path: the run's recorded
+/// A stateful protocol-19 Herdr covering the rescue path: the run's recorded
 /// pane `w1:p9` is **absent** (its terminal was closed) while the card tab
 /// `w1:t1` and its shell anchor `w1:anchor` are still alive. Panes created by
 /// `pane.split` persist in this fake and are returned by `pane.list`, which is
@@ -341,7 +341,7 @@ fn fake_rescue_herdr(faults: RescueFakeFaults) -> RescueFake {
                     testkit::reply(
                         request,
                         json!({"type":"session_snapshot","snapshot":{
-                            "version":"0.7.5","protocol":17,
+                            "version":"0.8.0","protocol":19,
                             "workspaces":[{"workspace_id":"w1","label":"ws","focused":true,
                                            "tab_count":1,"pane_count":1,"agent_status":"idle"}],
                             "tabs":tab_list,"panes":list,"agents":[]
@@ -465,7 +465,7 @@ fn fake_rescue_herdr(faults: RescueFakeFaults) -> RescueFake {
                     // Real Herdr reports the agent *kind* here, not the
                     // exclusive `name` we chose: the pinned schema gives
                     // `AgentInfo` both an `agent` and a separate `name`, and
-                    // `e2e/16-managed-p17.sh` matches `pane.agent` against
+                    // `e2e/16-managed-p19.sh` matches `pane.agent` against
                     // `pi`/`claude`. Mirroring that keeps the dedup tests from
                     // passing on a false premise about this field.
                     pane.3 = params["kind"].as_str().map(str::to_string);

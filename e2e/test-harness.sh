@@ -85,7 +85,7 @@ rm -rf "$managed_spoof"
   e2e_artifact_invocation_validate ) >/dev/null 2>&1 \
   && { echo 'unbounded artifact redirect was accepted' >&2; exit 1; }
 
-E2E_TEST_SLUG='17-configured-p17-runner.sh'
+E2E_TEST_SLUG='17-configured-p19-runner.sh'
 name="$(e2e_session_name)"
 [[ "$name" =~ ^hb-e2e-17-confi-[0-9]+-[0-9a-f]{16}$ ]]
 # Herdr's fixed suffix observed by live preflight is 35 bytes. Keep the total
@@ -258,7 +258,7 @@ wait "$bad_server" 2>/dev/null || true
 )
 
 # Cleanup traps precede fake-managed root creation in both managed scenarios.
-python3 - "$E2E_LIB_DIR/11-pi-harness.sh" "$E2E_LIB_DIR/16-managed-p17.sh" <<'PY'
+python3 - "$E2E_LIB_DIR/11-pi-harness.sh" "$E2E_LIB_DIR/16-managed-p19.sh" <<'PY'
 import sys
 for path in sys.argv[1:]:
     text=open(path,encoding='utf-8').read()
@@ -466,7 +466,7 @@ assert_audit_fails 'missing registry'
 
 # Production creation/cleanup sites are wired to the same ledger, including
 # settled session replacement, daemon, roots, workspace markers, and runner.
-python3 - "$E2E_LIB_DIR/lib.sh" "$E2E_LIB_DIR/17-configured-p17-runner.sh" "$E2E_LIB_DIR/20-herdr-recovery.sh" <<'PY'
+python3 - "$E2E_LIB_DIR/lib.sh" "$E2E_LIB_DIR/17-configured-p19-runner.sh" "$E2E_LIB_DIR/20-herdr-recovery.sh" <<'PY'
 import sys
 lib=open(sys.argv[1],encoding='utf-8').read()
 runner=open(sys.argv[2],encoding='utf-8').read()
@@ -478,11 +478,11 @@ assert 'e2e_root_resource_register managed managed-root' in lib
 assert 'e2e_root_resource_register scenario scenario-temp' in lib
 assert 'e2e_workspace_resource_register "$ws" "$marker"' in lib
 assert 'export TMPDIR="$E2E_TMP"' in lib
-assert 'e2e_script_resource_register configured-runner p17-configured-runner' in runner
+assert 'e2e_script_resource_register configured-runner p19-configured-runner' in runner
 assert 'e2e_process_resource_register "$role" "$logical"' in lib
 assert 'e2e_owned_process_stop %q' in lib
 assert 'e2e_proxy_start' in recovery and 'e2e_proxy_command' in recovery
-assert 'p17-runner-script' not in runner
+assert 'p19-runner-script' not in runner
 PY
 
 # Standalone and run-all select the same manifest-backed accounting path.

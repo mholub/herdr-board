@@ -4,10 +4,10 @@
 //! sibling test modules:
 //!
 //! 1. [`daemon`] — one builder for the twelve-argument [`Daemon::new`].
-//! 2. [`herdr_server`] — one fake protocol-17 Herdr Unix socket server, with a
+//! 2. [`herdr_server`] — one fake protocol-19 Herdr Unix socket server, with a
 //!    configurable protocol/version (so protocol-gate tests can serve a *wrong*
 //!    one), per-method canned responses, an optional accept count, and recorded
-//!    request inspection. The generic protocol-17 JSON constructors used to
+//!    request inspection. The generic protocol-19 JSON constructors used to
 //!    build those responses live here too.
 //! 3. The "nothing escaped" assertions and the armed lifecycle-fault `Db`.
 //!
@@ -230,10 +230,10 @@ pub(crate) struct FakeHerdrBuilder {
 }
 
 /// Start building a fake Herdr. It answers the `ping` protocol gate itself
-/// (Herdr 0.7.5 / protocol 17 by default) and records every request.
+/// (Herdr 0.8.0 / protocol 19 by default) and records every request.
 pub(crate) fn herdr_server() -> FakeHerdrBuilder {
     FakeHerdrBuilder {
-        version: "0.7.5".to_string(),
+        version: "0.8.0".to_string(),
         protocol: crate::HERDR_PROTOCOL,
         take: None,
         by_method: HashMap::new(),
@@ -348,7 +348,7 @@ impl FakeHerdrBuilder {
 }
 
 // ---------------------------------------------------------------------------
-// Generic protocol-17 JSON constructors
+// Generic protocol-19 JSON constructors
 // ---------------------------------------------------------------------------
 
 /// A successful response envelope for `req`.
@@ -364,7 +364,7 @@ pub(crate) fn error(req: &Value, code: &str, message: &str) -> Value {
     })
 }
 
-/// Minimal schema-valid protocol-17 `PaneInfo` fixture. In particular,
+/// Minimal schema-valid protocol-19 `PaneInfo` fixture. In particular,
 /// `focused` and `revision` are required by the authoritative schema.
 pub(crate) fn pane_info(id: &str) -> Value {
     json!({

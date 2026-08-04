@@ -1,4 +1,4 @@
-//! Protocol-17 managed launch: the version/protocol gate, the pane-first
+//! Protocol-19 managed launch: the version/protocol gate, the pane-first
 //! `pane.split` → `agent.start` order, the authoritative startup system-prompt
 //! file, readiness polling before the card prompt, and the bounded
 //! `agent_pane_busy` / name-collision retry budget.
@@ -7,7 +7,7 @@ use super::*;
 
 #[test]
 fn herdr_protocol_gate_rejects_mismatches_before_any_spawn_or_placement_call() {
-    for (version, protocol) in [("0.7.4", 17), ("0.7.5", 16)] {
+    for (version, protocol) in [("0.7.5", 19), ("0.8.0", 17)] {
         let fake = serve_recording_herdr_with_ping(
             |req, _| error(req, "unexpected_call", "protocol gate was bypassed"),
             version,
@@ -29,7 +29,7 @@ fn herdr_protocol_gate_rejects_mismatches_before_any_spawn_or_placement_call() {
             .unwrap_err();
         let text = err.to_string();
         assert!(
-            text.contains("Herdr 0.7.5 with protocol 17 is required"),
+            text.contains("Herdr 0.8.0 with protocol 19 is required"),
             "mismatch must explain the required Herdr version/protocol: {text}"
         );
         assert_eq!(
@@ -100,7 +100,7 @@ fn managed_pi_uses_startup_only_system_file_then_polls_ready_before_card_prompt(
             );
             agent_prompted(req, "w1:p2", "card-42-execute")
         }
-        method => panic!("unexpected protocol-17 method {method}"),
+        method => panic!("unexpected protocol-19 method {method}"),
     });
     let spawner = HerdrSpawner::new(fake.socket.clone());
     let prompt = "first task line\nsecond task line with spaces";
@@ -173,7 +173,7 @@ fn managed_claude_uses_file_specific_flag_after_unchanged_startup_tail() {
             *prompt_path2.lock().unwrap() = Some(path);
             agent_started(req, "w1:p8", false, true)
         }
-        method => panic!("unexpected protocol-17 method {method}"),
+        method => panic!("unexpected protocol-19 method {method}"),
     });
     let spawner = HerdrSpawner::new(fake.socket.clone());
 
@@ -221,7 +221,7 @@ fn managed_codex_uses_developer_instructions_and_persists_detected_session() {
             });
             response
         }
-        method => panic!("unexpected protocol-17 method {method}"),
+        method => panic!("unexpected protocol-19 method {method}"),
     });
     let spawner = HerdrSpawner::new(fake.socket.clone());
 
@@ -282,7 +282,7 @@ fn managed_existing_tab_splits_selected_pane_before_exact_agent_start() {
             );
             agent_started(req, "w1:p3", false, true)
         }
-        method => panic!("unexpected protocol-17 method {method}"),
+        method => panic!("unexpected protocol-19 method {method}"),
     });
     let spawner = HerdrSpawner::new(fake.socket.clone());
 

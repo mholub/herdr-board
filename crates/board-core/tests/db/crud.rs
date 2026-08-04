@@ -232,7 +232,7 @@ fn card_create_move_and_position_compaction() {
 }
 
 #[test]
-fn default_card_harness_is_pi() {
+fn default_card_harness_is_codex() {
     let db = mem();
     let card = db
         .create_card(&CardCreateParams {
@@ -241,7 +241,7 @@ fn default_card_harness_is_pi() {
         })
         .unwrap();
     assert_eq!(card.column_id, db.default_column_id(BOARD_ID).unwrap());
-    assert_eq!(card.harness, "pi");
+    assert_eq!(card.harness, "codex");
     assert_eq!(card.space_kind, SpaceKind::Workspace);
 }
 

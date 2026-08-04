@@ -67,7 +67,7 @@ step "Transient agent_pane_busy must retry on the same owned child pane"
 e2e_proxy_command agent_pane_busy_transient >/dev/null
 TRANSIENT_CARD_JSON="$($BOARD_BIN card new --title 'Transient pane busy' \
   --description 'provider-free transient agent start race' --harness pi \
-  --model p17/busy-transient --space-kind workspace --space-ref "$TRANSIENT_WS" --json)"
+  --model p19/busy-transient --space-kind workspace --space-ref "$TRANSIENT_WS" --json)"
 TRANSIENT_CARD="$(printf '%s' "$TRANSIENT_CARD_JSON" | jget id)"
 e2e_board_herdr_mutate -- move "$TRANSIENT_CARD" "Busy Execute" --json >/dev/null
 TRANSIENT_OUTCOME="$(wait_ok "$TRANSIENT_CARD" 160)" || {
@@ -100,7 +100,7 @@ BEFORE_PERSISTENT="$(e2e_proxy_command status)"
 e2e_proxy_command agent_pane_busy_persistent >/dev/null
 PERSISTENT_CARD_JSON="$($BOARD_BIN card new --title 'Persistent pane busy' \
   --description 'provider-free persistent agent start race' --harness pi \
-  --model p17/busy-persistent --space-kind workspace --space-ref "$PERSISTENT_WS" --json)"
+  --model p19/busy-persistent --space-kind workspace --space-ref "$PERSISTENT_WS" --json)"
 PERSISTENT_CARD="$(printf '%s' "$PERSISTENT_CARD_JSON" | jget id)"
 e2e_board_herdr_mutate -- move "$PERSISTENT_CARD" "Busy Execute" --json >/dev/null
 PERSISTENT_OUTCOME="$(wait_fail "$PERSISTENT_CARD")" || {

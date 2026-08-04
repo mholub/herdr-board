@@ -294,11 +294,11 @@ argv = ["z"]
 argv = ["a"]
 "#;
     let cfg = Config::from_toml(toml).unwrap();
-    // Built-ins first in their default order (pi before claude), then config
+    // Built-ins first in their default order (Codex before Claude), then config
     // keys sorted and de-duplicated.
     assert_eq!(
         available_harnesses(&cfg),
-        vec!["pi", "claude", "codex", "alpha", "zeta"]
+        vec!["codex", "claude", "pi", "alpha", "zeta"]
     );
 }
 

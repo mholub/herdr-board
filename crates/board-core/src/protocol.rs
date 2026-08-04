@@ -519,6 +519,7 @@ pub struct TemplateApplyParams {
 /// `card.create` params.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct CardCreateParams {
+    #[serde(default)]
     pub title: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub board_id: Option<i64>,

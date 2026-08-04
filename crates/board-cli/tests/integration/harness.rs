@@ -47,27 +47,27 @@ fn harness_list_builtins_and_config_defined() {
     assert!(out.status.success(), "harness list should succeed");
     let text = String::from_utf8_lossy(&out.stdout);
     let names: Vec<&str> = text.lines().filter(|l| !l.is_empty()).collect();
-    assert_eq!(names, vec!["pi", "claude", "codex", "fake"], "got:\n{text}");
+    assert_eq!(names, vec!["codex", "claude", "pi", "fake"], "got:\n{text}");
 
     // --json: the same names, default-first, as a JSON array.
     let out = td.board(&["harness", "list", "--json"]);
     let names: Vec<String> = serde_json::from_value(json_output(&out)).unwrap();
-    assert_eq!(names, vec!["pi", "claude", "codex", "fake"]);
+    assert_eq!(names, vec!["codex", "claude", "pi", "fake"]);
 }
 
 #[test]
-fn harness_models_default_is_pi() {
+fn harness_models_default_is_codex() {
     let td = TestDaemon::start(&[]);
     let out = td.board(&["harness", "models", "--json"]);
     let caps: board_core::capability::HarnessCapabilities =
         serde_json::from_value(json_output(&out)).unwrap();
-    assert_eq!(caps.harness, "pi");
+    assert_eq!(caps.harness, "codex");
     assert!(caps.models.is_empty());
     assert!(caps.model_freeform);
     assert!(caps
         .default_efforts
         .iter()
-        .any(|effort| effort.as_str() == "low"));
+        .any(|effort| effort.as_str() == "high"));
 }
 
 #[test]
@@ -81,7 +81,7 @@ fn harness_models_unknown_harness_errors() {
     let err = String::from_utf8_lossy(&out.stderr);
     assert_eq!(
         err.trim_end(),
-        "board: boardd error 2: not found: unknown harness 'ghost'; known: pi, claude, codex, fake",
+        "board: boardd error 2: not found: unknown harness 'ghost'; known: codex, claude, pi, fake",
         "unknown harness names the harness and the known set"
     );
 
@@ -94,7 +94,7 @@ fn harness_models_unknown_harness_errors() {
     assert_eq!(error["error"]["code"], 2);
     assert_eq!(
         error["error"]["message"],
-        "not found: unknown harness 'ghost'; known: pi, claude, codex, fake"
+        "not found: unknown harness 'ghost'; known: codex, claude, pi, fake"
     );
 }
 
@@ -229,10 +229,12 @@ fn card_new_new_workspace_missing_cwd_is_validation_error() {
 }
 
 #[test]
-fn card_new_defaults_to_pi_and_claude_remains_explicit() {
+fn card_new_defaults_to_codex_56_sol_high_and_claude_remains_explicit() {
     let td = TestDaemon::start(&[]);
-    let pi = json_output(&td.board(&["card", "new", "--title", "default", "--json"]));
-    assert_eq!(pi["harness"], "pi");
+    let codex = json_output(&td.board(&["card", "new", "--title", "default", "--json"]));
+    assert_eq!(codex["harness"], "codex");
+    assert_eq!(codex["model"], "gpt-5.6-sol");
+    assert_eq!(codex["effort"], "high");
 
     let claude = json_output(&td.board(&[
         "card",
@@ -254,6 +256,8 @@ fn card_new_rejects_pi_permission_mode() {
         "new",
         "--title",
         "bad",
+        "--harness",
+        "pi",
         "--permission",
         "acceptEdits",
     ]);

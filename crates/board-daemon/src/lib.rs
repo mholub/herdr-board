@@ -46,7 +46,7 @@ use crate::store::Store;
 pub use ops::ROUTED_METHODS;
 
 /// The herdr protocol version the daemon requires.
-pub(crate) const HERDR_PROTOCOL: u32 = 17;
+pub(crate) const HERDR_PROTOCOL: u32 = 19;
 
 /// Run the daemon. `foreground` mirrors logs to stderr and is used by
 /// `board daemon --foreground`. Returns `Ok(())` immediately if another daemon

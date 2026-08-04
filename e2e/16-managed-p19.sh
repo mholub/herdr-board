@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 16-managed-p17.sh — protocol-17 managed Pi/Claude/Codex launch contract.
+# 16-managed-p19.sh — protocol-19 managed Pi/Claude/Codex launch contract.
 #
 # The provider-free terminal fixtures validate the authoritative 0600 system
 # file, report session identity then idle lifecycle against HERDR_PANE_ID, emit
@@ -45,7 +45,7 @@ for pane in panes:
   printf '%s\n' '--- end managed diagnostics ---' >&2
 }
 
-e2e_ws_create p17-managed; WS_ID="$E2E_WS"
+e2e_ws_create p19-managed; WS_ID="$E2E_WS"
 workspace_panes="$(hrpc pane.list "{\"workspace_id\":\"$WS_ID\"}")"
 MANAGED_PANE_CWD="$(printf '%s' "$workspace_panes" | python3 -c '
 import json, sys
@@ -55,14 +55,14 @@ assert cwds, panes
 print(cwds[0])
 ')"
 printf '  disposable workspace pane cwd: %s\n' "$MANAGED_PANE_CWD"
-EXEC_ID="$(col_create '{"name":"P17 Execute","trigger":"auto"}')"
+EXEC_ID="$(col_create '{"name":"P19 Execute","trigger":"auto"}')"
 
-step "Dispatch fake Pi through managed protocol-17 launch"
-pi_json="$("$BOARD_BIN" card new --title 'P17 Pi' --description $'description with spaces\nand a newline' \
-  --harness pi --model p17/pi-model --effort low --space-kind workspace --space-ref "$WS_ID" --json)"
+step "Dispatch fake Pi through managed protocol-19 launch"
+pi_json="$("$BOARD_BIN" card new --title 'P19 Pi' --description $'description with spaces\nand a newline' \
+  --harness pi --model p19/pi-model --effort low --space-kind workspace --space-ref "$WS_ID" --json)"
 PI_ID="$(printf '%s' "$pi_json" | jget id)"
-mut "board move $PI_ID 'P17 Execute' -> managed agent.start kind=pi"
-e2e_board_herdr_mutate -- move "$PI_ID" "P17 Execute" --json >/dev/null
+mut "board move $PI_ID 'P19 Execute' -> managed agent.start kind=pi"
+e2e_board_herdr_mutate -- move "$PI_ID" "P19 Execute" --json >/dev/null
 pi_outcome="$(wait_ok "$PI_ID" 100)" || {
 
   managed_failure_diag pi "$PI_ID"
@@ -87,8 +87,8 @@ You are running a herdr-board card ($BOARD_CARD_ID is preset). When this stage's
 assert str(x["card_id"]) == card and str(x["run_id"]) == run
 assert x["board_socket"] == board and x["herdr_socket"] == herdr
 assert os.path.realpath(x["cwd"]) == os.path.realpath(cwd)
-assert x["model"] == "p17/pi-model" and x["thinking"] == "low"
-assert x["argv"][:-2] == ["--model", "p17/pi-model", "--thinking", "low", "--session-id", x["session_id"]]
+assert x["model"] == "p19/pi-model" and x["thinking"] == "low"
+assert x["argv"][:-2] == ["--model", "p19/pi-model", "--thinking", "low", "--session-id", x["session_id"]]
 assert x["argv"][-2:] == ["--append-system-prompt", x["system_prompt_file"]]
 assert x["system_prompt_exists_at_read"] is True and x["system_prompt_mode"] == 0o600
 assert x["system_prompt"] == protocol
@@ -112,13 +112,13 @@ assert not any("description with spaces" in arg or "herdr-board protocol" in arg
 print("  Pi: 0600 system file exact; readiness reported; exact agent.prompt captured on tty")
 PY
 
-step "Dispatch fake Claude through managed protocol-17 launch"
-claude_json="$("$BOARD_BIN" card new --title 'P17 Claude' --description $'claude description with spaces\nand a newline' \
-  --harness claude --model p17/claude-model --effort low --permission acceptEdits \
+step "Dispatch fake Claude through managed protocol-19 launch"
+claude_json="$("$BOARD_BIN" card new --title 'P19 Claude' --description $'claude description with spaces\nand a newline' \
+  --harness claude --model p19/claude-model --effort low --permission acceptEdits \
   --space-kind workspace --space-ref "$WS_ID" --json)"
 CLAUDE_ID="$(printf '%s' "$claude_json" | jget id)"
-mut "board move $CLAUDE_ID 'P17 Execute' -> managed agent.start kind=claude"
-e2e_board_herdr_mutate -- move "$CLAUDE_ID" "P17 Execute" --json >/dev/null
+mut "board move $CLAUDE_ID 'P19 Execute' -> managed agent.start kind=claude"
+e2e_board_herdr_mutate -- move "$CLAUDE_ID" "P19 Execute" --json >/dev/null
 claude_outcome="$(wait_ok "$CLAUDE_ID" 100)" || {
 
   managed_failure_diag claude "$CLAUDE_ID"
@@ -143,7 +143,7 @@ You are running a herdr-board card ($BOARD_CARD_ID is preset). When this stage's
 assert str(x["card_id"]) == card and str(x["run_id"]) == run
 assert x["board_socket"] == board and x["herdr_socket"] == herdr
 assert os.path.realpath(x["cwd"]) == os.path.realpath(cwd)
-base = ["--model", "p17/claude-model", "--effort", "low", "--permission-mode", "acceptEdits",
+base = ["--model", "p19/claude-model", "--effort", "low", "--permission-mode", "acceptEdits",
         "--allowedTools", "Bash(board:*)", "--session-id", x["session_id"]]
 assert x["argv"][:-2] == base
 assert x["argv"][-2:] == ["--append-system-prompt-file", x["system_prompt_file"]]
@@ -170,12 +170,12 @@ print("  Claude: 0600 system file exact; readiness reported; exact agent.prompt 
 PY
 
 step "Dispatch fake Codex and persist its integration-reported conversation id"
-codex_json="$("$BOARD_BIN" card new --title 'P17 Codex' --description $'codex description with spaces\nand a newline' \
-  --harness codex --model p17/codex-model --effort high --permission read-only \
+codex_json="$("$BOARD_BIN" card new --title 'P19 Codex' --description $'codex description with spaces\nand a newline' \
+  --harness codex --model p19/codex-model --effort high --permission read-only \
   --space-kind workspace --space-ref "$WS_ID" --json)"
 CODEX_ID="$(printf '%s' "$codex_json" | jget id)"
-mut "board move $CODEX_ID 'P17 Execute' -> managed agent.start kind=codex"
-e2e_board_herdr_mutate -- move "$CODEX_ID" "P17 Execute" --json >/dev/null
+mut "board move $CODEX_ID 'P19 Execute' -> managed agent.start kind=codex"
+e2e_board_herdr_mutate -- move "$CODEX_ID" "P19 Execute" --json >/dev/null
 codex_outcome="$(wait_ok "$CODEX_ID" 100)" || {
   managed_failure_diag codex "$CODEX_ID"
   fail "managed Codex outcome '$codex_outcome' (session detection/agent.prompt did not complete)"
@@ -194,7 +194,7 @@ x=json.load(open(record,encoding="utf-8")); show=json.load(open(show_path,encodi
 latest=show["runs"][-1]
 assert str(x["card_id"]) == card and str(x["run_id"]) == run
 assert os.path.realpath(x["cwd"]) == os.path.realpath(cwd)
-assert x["model"] == "p17/codex-model" and x["effort"] == "high"
+assert x["model"] == "p19/codex-model" and x["effort"] == "high"
 assert x["sandbox"] == "read-only"
 assert x["system_prompt"].startswith("## herdr-board protocol")
 assert latest["session_id"] == x["agent_session_id"]
@@ -244,4 +244,4 @@ done
 printf '  pane.layout contains both exact bounded-held managed card panes\n'
 
 ok "fixture boundary: no provider was called; Pi, Claude, and Codex passed live Herdr readiness, session reporting, and exact stdin delivery"
-step "16-managed-p17: SYSTEM FILE + AGENT.PROMPT + HELD LAYOUT CONTRACTS PASSED"
+step "16-managed-p19: SYSTEM FILE + AGENT.PROMPT + HELD LAYOUT CONTRACTS PASSED"

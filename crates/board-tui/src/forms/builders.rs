@@ -2,7 +2,9 @@
 
 use board_core::capability::{default_capabilities, efforts_for, HarnessCapabilities};
 use board_core::engine::validate_column_permission_override;
-use board_core::harness::{BUILTIN_HARNESSES, DEFAULT_HARNESS};
+use board_core::harness::{
+    BUILTIN_HARNESSES, DEFAULT_CODEX_EFFORT, DEFAULT_CODEX_MODEL, DEFAULT_HARNESS,
+};
 use board_core::model::{Card, Column, Comment};
 use board_core::protocol::{Effort, SessionInfo, SpaceInfo};
 
@@ -49,7 +51,16 @@ impl Form {
     }
 
     pub fn card_create_with_session(column_id: i64, session: Option<&str>) -> Form {
-        let values = CardValues::from_card(None, session);
+        Self::card_create_with_origin(column_id, session, None)
+    }
+
+    pub fn card_create_with_origin(
+        column_id: i64,
+        session: Option<&str>,
+        workspace_id: Option<&str>,
+    ) -> Form {
+        let mut values = CardValues::from_card(None, session);
+        values.space_ref = workspace_id.unwrap_or_default().to_string();
         Form {
             kind: FormKind::CardCreate { column_id },
             fields: build_card_fields(&values, None, &default_harnesses(), &[], &[]),
@@ -272,6 +283,8 @@ impl CardValues {
             },
             None => CardValues {
                 harness: DEFAULT_HARNESS.to_string(),
+                model: DEFAULT_CODEX_MODEL.to_string(),
+                effort: Some(DEFAULT_CODEX_EFFORT.as_str().to_string()),
                 session: default_session.map(str::to_string),
                 space_kind: "workspace".to_string(),
                 ..CardValues::default()
@@ -296,7 +309,7 @@ pub(super) fn build_card_fields(
 
     // -- harness -------------------------------------------------------------
     // Drawn from the shared `harness.list` source (`Form::harnesses`), same list
-    // the column harness_override selector uses; pi stays first (default).
+    // the column harness_override selector uses; Codex stays first (default).
     let (harness_opts, harness_idx) = harness_choice_opts(harnesses, &v.harness);
 
     // -- model ---------------------------------------------------------------

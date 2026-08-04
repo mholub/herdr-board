@@ -61,6 +61,7 @@ fn plugin_origin() -> OriginContext {
         session: Some("work".into()),
         plugin_id: Some("herdr-board".into()),
         pane_id: Some("w1:p1".into()),
+        workspace_id: Some("w1".into()),
     }
 }
 

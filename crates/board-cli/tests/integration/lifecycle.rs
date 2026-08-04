@@ -286,7 +286,15 @@ fn local_spawner_missing_pi_surfaces_clean_run_failure() {
     })
     .unwrap();
     let out = td.board(&[
-        "card", "new", "--title", "missing", "--column", "work", "--json",
+        "card",
+        "new",
+        "--title",
+        "missing",
+        "--column",
+        "work",
+        "--harness",
+        "pi",
+        "--json",
     ]);
     assert!(out.status.success());
     let card: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();

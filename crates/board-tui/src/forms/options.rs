@@ -79,6 +79,45 @@ impl Form {
         self.rebuild_card_fields();
     }
 
+    /// Replace the opinionated Codex defaults when the user explicitly picks
+    /// another harness, and restore them when returning to Codex from an unset
+    /// model/effort. This prevents the initial `gpt-5.6-sol` value from leaking
+    /// into Pi or Claude merely because their model catalogs are free-form.
+    pub fn on_harness_changed(&mut self) {
+        if !self.is_card_form() {
+            return;
+        }
+        let mut values = self.card_values();
+        if values.harness == "codex" {
+            if values.model.is_empty() {
+                values.model = board_core::harness::DEFAULT_CODEX_MODEL.to_string();
+            }
+            if values.effort.is_none() {
+                values.effort = Some(
+                    board_core::harness::DEFAULT_CODEX_EFFORT
+                        .as_str()
+                        .to_string(),
+                );
+            }
+        } else {
+            if values.model == board_core::harness::DEFAULT_CODEX_MODEL {
+                values.model.clear();
+                values.model_custom_selected = false;
+            }
+            if values.effort.as_deref() == Some(board_core::harness::DEFAULT_CODEX_EFFORT.as_str())
+            {
+                values.effort = None;
+            }
+        }
+        self.fields = build_card_fields(
+            &values,
+            self.caps.as_ref(),
+            &self.harnesses,
+            &self.spaces,
+            &self.sessions,
+        );
+    }
+
     /// React to a space-kind change: the space ref flips between the workspace
     /// selector and free text.
     pub fn on_space_kind_changed(&mut self) {

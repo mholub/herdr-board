@@ -232,11 +232,11 @@ impl HerdrClient {
     /// visible at the gate.
     pub fn require_protocol(&mut self, expected: u32) -> Result<Pong> {
         let pong = self.ping()?;
-        if pong.version != "0.7.5" || pong.protocol != expected || expected != 17 {
+        if pong.version != "0.8.0" || pong.protocol != expected || expected != 19 {
             return Err(HerdrError::Protocol {
                 code: "incompatible_protocol".to_string(),
                 message: format!(
-                    "Herdr 0.7.5 with protocol 17 is required (found Herdr {} with protocol {})",
+                    "Herdr 0.8.0 with protocol 19 is required (found Herdr {} with protocol {})",
                     pong.version, pong.protocol
                 ),
             });
@@ -350,7 +350,7 @@ impl HerdrClient {
     /// `pane_not_found` error envelope, which is a *negative answer* to a
     /// liveness question rather than a failure, so it is modelled as `None`
     /// here and every other error still propagates. Verified against
-    /// Herdr 0.7.5 / protocol 17: `tests/fixtures/schema.json` types
+    /// Herdr 0.8.0 / protocol 19: `tests/fixtures/schema.json` types
     /// `pane.get`'s params as `PaneTarget {pane_id}` with a
     /// `{"type":"pane_info","pane":PaneInfo}` success result, and a live socket
     /// answers an unknown pane id with

@@ -179,7 +179,9 @@ fake_methods!(db, config, params, {
         serde_json::to_value(DeletedResult { deleted: true })?
     },
     "card.create" => {
-        let p: CardCreateParams = serde_json::from_value(params)?;
+        let mut p: CardCreateParams = serde_json::from_value(params)?;
+        engine::apply_card_create_defaults(&mut p);
+        p.title = engine::resolve_card_title(&p.title, p.description.as_deref())?;
         serde_json::to_value(db.create_card(&p)?)?
     },
     "card.update" => {

@@ -228,6 +228,16 @@ fn card_new_and_to_board_remain_aliases() {
     }
 }
 
+#[test]
+fn card_create_does_not_require_a_title_flag() {
+    match parse(&["board", "card", "create", "--description", "derive title"]).cmd {
+        Cmd::Card {
+            sub: CardCmd::Create { title, .. },
+        } => assert!(title.is_empty()),
+        _ => panic!("expected card create"),
+    }
+}
+
 /// D3: `--destination-board` is the explicit cross-board spelling on both the
 /// nested and the legacy verb.
 #[test]

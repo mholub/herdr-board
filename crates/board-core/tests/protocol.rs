@@ -288,6 +288,10 @@ fn card_create_params_omit_none() {
     };
     let s = serde_json::to_string(&p).unwrap();
     assert_eq!(s, r#"{"title":"t"}"#);
+
+    let without_title: CardCreateParams =
+        serde_json::from_value(json!({"description":"derive me"})).unwrap();
+    assert_eq!(without_title.title, "");
 }
 
 #[test]
